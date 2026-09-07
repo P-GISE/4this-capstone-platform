@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.test.ai.AiConversationRepository">
+
+    <!-- 대화방(주제) 생성 -->
+    <insert id="insertConversation" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_conversations (user_id, title)
+        VALUES (#{userId}, #{title})
+    </insert>
+
+    <!-- 사용자별 대화방(주제) 리스트 -->
+    <select id="selectConversationsByUserId" resultType="com.example.test.ai.Conversation">
+        SELECT * FROM ai_conversations WHERE user_id = #{userId} ORDER BY created_at DESC
+    </select>
+
+    <!-- 단일 대화방(주제) 조회 -->
+    <select id="selectConversationById" resultType="com.example.test.ai.Conversation">
+        SELECT * FROM ai_conversations WHERE id = #{id}
+    </select>
+
+</mapper> 

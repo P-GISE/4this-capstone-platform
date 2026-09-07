@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.equipmentrental.EquipmentRentalDao">
+
+    <!-- (4) 대여 정보 INSERT -->
+    <insert id="insertRental"
+            parameterType="com.example.test.equipmentrental.EquipmentRentalDto"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO equipment_rentals
+            (user_id,
+             equipment_id,
+             rent_date,
+             expected_return_date,
+             requested_quantity,
+             purpose,
+             status,
+             is_approved,
+             created_at,
+             updated_at)
+        VALUES
+            (#{userId},
+             #{equipmentId},
+             #{rentDate},
+             #{expectedReturnDate},
+             #{requestedQuantity},
+             #{purpose},
+             #{status},
+             #{isApproved},
+             CURRENT_TIMESTAMP,
+             CURRENT_TIMESTAMP)
+    </insert>
+
+    <!-- (2) ID로 단건 조회 (승인 전에 request 정보를 알아내기 위함) -->
+    <select id="selectRentalById"
+            resultType="com.example.test.equipmentrental.EquipmentRentalDto"
+            parameterType="long">
+        SELECT
+            id,
+            user_id            AS userId,
+            equipment_id       AS equipmentId,
+            rent_date          AS rentDate,
+            expected_return_date AS expectedReturnDate,
+            return_date        AS returnDate,
+            extension_count    AS extensionCount,
+            requested_quantity AS requestedQuantity,
+            purpose,
+            is_approved        AS isApproved,
+            approved_by        AS approvedBy,
+            status,
+            created_at         AS createdAt,
+            updated_at         AS updatedAt
+        FROM equipment_rentals
+        WHERE id = #{id}
+    </select>
+
+    <!-- (1) 전체 대여 내역 조회 -->
+    <select id="selectRentalList"
+            resultType="com.example.test.equipmentrental.EquipmentRentalDto">
+        SELECT
+            id,
+            user_id            AS userId,
+            equipment_id       AS equipmentId,
+            rent_date          AS rentDate,
+            expected_return_date AS expectedReturnDate,
+            return_date        AS returnDate,
+            extension_count    AS extensionCount,
+            requested_quantity AS requestedQuantity,
+            purpose,
+            is_approved        AS isApproved,
+            approved_by        AS approvedBy,
+            status,
+            created_at         AS createdAt,
+            updated_at         AS updatedAt
+        FROM equipment_rentals
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- (3) 특정 기자재의 대여 내역 조회 -->
+    <select id="selectRentalsByEquipment"
+            resultType="com.example.test.equipmentrental.EquipmentRentalDto"
+            parameterType="long">
+        SELECT
+            id,
+            user_id            AS userId,
+            equipment_id       AS equipmentId,
+            rent_date          AS rentDate,
+            expected_return_date AS expectedReturnDate,
+            return_date        AS returnDate,
+            extension_count    AS extensionCount,
+            requested_quantity AS requestedQuantity,
+            purpose,
+            is_approved        AS isApproved,
+            approved_by        AS approvedBy,
+            status,
+            created_at         AS createdAt,
+            updated_at         AS updatedAt
+        FROM equipment_rentals
+        WHERE equipment_id = #{equipmentId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- (8) 아직 승인되지 않은(=isApproved=false) 목록 조회 -->
+    <select id="selectPendingRentals"
+            resultType="com.example.test.equipmentrental.EquipmentRentalDto">
+        SELECT
+            id,
+            user_id              AS userId,
+            equipment_id         AS equipmentId,
+            rent_date            AS rentDate,
+            expected_return_date AS expectedReturnDate,
+            return_date          AS returnDate,
+            extension_count      AS extensionCount,
+            requested_quantity   AS requestedQuantity,
+            purpose,
+            is_approved          AS isApproved,
+            approved_by          AS approvedBy,
+            status,
+            created_at           AS createdAt,
+            updated_at           AS updatedAt,
+            rejection_reason     AS rejectionReason  
+        FROM equipment_rentals
+        WHERE is_approved = FALSE
+        AND status NOT IN ('RETURNED', 'REJECTED')  
+        ORDER BY created_at DESC
+    </select>
+
+
+
+    <!-- (9) 승인 처리 (DTO에 id, approvedBy, status 전달) -->
+    <update id="approveRentalById"
+            parameterType="com.example.test.equipmentrental.EquipmentRentalDto">
+        UPDATE equipment_rentals
+        SET
+            is_approved = TRUE,
+            approved_by  = #{approvedBy},
+            status       = #{status},
+            updated_at   = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- (5) 반납 처리 (return_date, status 업데이트) -->
+    <update id="updateReturnById"
+            parameterType="com.example.test.equipmentrental.EquipmentRentalDto">
+        UPDATE equipment_rentals
+        SET
+            return_date = #{returnDate},
+            status      = #{status},
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- (6) 대여 상태만 업데이트 (연장, 취소 등) -->
+    <update id="updateRentalStatus"
+            parameterType="com.example.test.equipmentrental.EquipmentRentalDto">
+        UPDATE equipment_rentals
+        SET
+            status            = #{status},
+            approved_by       = #{approvedBy},
+            rejection_reason  = #{rejectionReason},
+            updated_at        = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+
+    <!-- (7) 대여 내역 DELETE -->
+    <delete id="deleteRental"
+            parameterType="long">
+        DELETE FROM equipment_rentals
+        WHERE id = #{id}
+    </delete>
+
+    <!-- (추가) “나의 대여 내역” 조회 (userId를 파라미터로 전달) -->
+    <select id="selectRentalsByUser"
+            resultType="com.example.test.equipmentrental.EquipmentRentalDto"
+            parameterType="long">
+        SELECT
+            id,
+            user_id            AS userId,
+            equipment_id       AS equipmentId,
+            rent_date          AS rentDate,
+            expected_return_date AS expectedReturnDate,
+            return_date        AS returnDate,
+            extension_count    AS extensionCount,
+            requested_quantity AS requestedQuantity,
+            purpose,
+            is_approved        AS isApproved,
+            approved_by        AS approvedBy,
+            status,
+            created_at         AS createdAt,
+            updated_at         AS updatedAt
+        FROM equipment_rentals
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- BEFORE: 승인된 대여만 조회 -->
+    <select id="selectRentalByUserAndEquipment"
+            resultType="com.example.test.equipmentrental.EquipmentRentalDto"
+            parameterType="map">
+        SELECT
+            id,
+            user_id            AS userId,
+            equipment_id       AS equipmentId,
+            rent_date          AS rentDate,
+            expected_return_date AS expectedReturnDate,
+            return_date        AS returnDate,
+            extension_count    AS extensionCount,
+            requested_quantity AS requestedQuantity,
+            purpose,
+            is_approved        AS isApproved,
+            approved_by        AS approvedBy,
+            status,
+            created_at         AS createdAt,
+            updated_at         AS updatedAt
+        FROM equipment_rentals
+        WHERE user_id = #{userId}
+        AND equipment_id = #{equipmentId}
+        AND return_date IS NULL
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 현재 대여 중인 기자재 수 -->
+    <select id="countCurrentRentalsByUser" resultType="int">
+    SELECT COUNT(*) FROM equipment_rentals
+    WHERE user_id = #{userId}
+        AND return_date IS NULL
+        AND is_approved = TRUE
+    </select>
+
+    <!-- 연체 중인 기자재 수 -->
+    <select id="countOverdueRentalsByUser" resultType="int">
+    <![CDATA[
+        SELECT COUNT(*) FROM equipment_rentals
+        WHERE user_id = #{userId}
+        AND return_date IS NULL
+        AND expected_return_date < NOW()
+        AND is_approved = TRUE
+    ]]>
+    </select>
+
+
+    <!-- 전체 대여 횟수 -->
+    <select id="countTotalRentalsByUser" resultType="int">
+        SELECT COUNT(*) FROM equipment_rentals
+        WHERE user_id = #{userId}
+            AND is_approved = TRUE
+    </select> <!-- ✅ 닫는 태그 추가 -->
+
+    <select id="countActiveRentalsByUserAndEquipment" resultType="int">
+        SELECT COUNT(*)
+        FROM equipment_rentals
+        WHERE user_id = #{userId}
+        AND equipment_id = #{equipmentId}
+        AND status IN ('RENTED', 'APPROVED')
+    </select>
+
+    <select id="selectCurrentRentalsByUser" parameterType="long" resultType="com.example.test.equipmentrental.EquipmentRentalDto">
+        SELECT
+            id,
+            user_id            AS userId,
+            equipment_id       AS equipmentId,
+            rent_date          AS rentDate,
+            expected_return_date AS expectedReturnDate,
+            return_date        AS returnDate,
+            extension_count    AS extensionCount,
+            requested_quantity AS requestedQuantity,
+            purpose,
+            is_approved        AS isApproved,
+            approved_by        AS approvedBy,
+            status,
+            created_at         AS createdAt,
+            updated_at         AS updatedAt
+        FROM equipment_rentals
+        WHERE user_id = #{userId}
+        AND return_date IS NULL
+        AND is_approved = TRUE
+        AND status IN ('APPROVED', 'RENTED')
+        ORDER BY rent_date DESC
+    </select>
+
+    <update id="rejectRentalWithReason" parameterType="com.example.test.equipmentrental.EquipmentRentalDto">
+        UPDATE equipment_rentals
+        SET status = 'REJECTED',
+            is_approved = FALSE,
+            approved_by = #{approvedBy},
+            rejection_reason = #{rejectionReason},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 프로젝트 멤버들의 현재 대여중인 기자재 목록 조회 -->
+    <select id="selectCurrentRentalsByUsers" 
+            resultType="com.example.test.equipmentrental.EquipmentRentalDto">
+        SELECT
+            er.id,
+            er.user_id            AS userId,
+            er.equipment_id       AS equipmentId,
+            er.rent_date          AS rentDate,
+            er.expected_return_date AS expectedReturnDate,
+            er.return_date        AS returnDate,
+            er.extension_count    AS extensionCount,
+            er.requested_quantity AS requestedQuantity,
+            er.purpose,
+            er.is_approved        AS isApproved,
+            er.approved_by        AS approvedBy,
+            er.status,
+            er.created_at         AS createdAt,
+            er.updated_at         AS updatedAt
+        FROM equipment_rentals er
+        WHERE er.user_id IN
+        <foreach item="userId" collection="userIds" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        AND er.return_date IS NULL
+        AND er.is_approved = TRUE
+        AND er.status IN ('APPROVED', 'RENTED')
+        ORDER BY er.rent_date DESC
+    </select>
+
+</mapper>

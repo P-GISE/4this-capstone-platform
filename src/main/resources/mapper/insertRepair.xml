@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.equipmentrepair.EquipmentRepairDao">
+
+    <!-- 수리 요청 등록 -->
+    <insert id="insertRepair" parameterType="com.example.test.equipmentrepair.EquipmentRepairDto">
+        INSERT INTO equipment_repairs
+        (rental_id, requested_by, reason, image_path, status, requested_at)
+        VALUES
+        (#{rentalId}, #{requestedBy}, #{reason}, #{imagePath}, #{status}, #{requestedAt})
+    </insert>
+
+    <!-- 수리 요청 목록 조회 (학생별) -->
+    <select id="selectRepairsByUser" resultType="com.example.test.equipmentrepair.EquipmentRepairDto">
+        SELECT * FROM equipment_repairs
+        WHERE requested_by = #{userId}
+        ORDER BY requested_at DESC
+    </select>
+
+    <!-- 수리 요청 전체 목록 (관리자용) -->
+    <select id="selectAllRepairs" resultType="com.example.test.equipmentrepair.EquipmentRepairDto">
+        SELECT *
+        FROM equipment_repairs
+        WHERE status = 'PENDING'
+        ORDER BY requested_at DESC
+    </select>
+
+
+    <!-- 수리 상태 업데이트 -->
+    <update id="updateRepairStatus" parameterType="com.example.test.equipmentrepair.EquipmentRepairDto">
+        UPDATE equipment_repairs
+        SET status = #{status},
+            handled_by = #{handledBy},
+            handled_at = #{handledAt}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectPendingRepairs" resultType="com.example.test.equipmentrepair.EquipmentRepairDto">
+        SELECT * FROM equipment_repairs
+        WHERE status = 'PENDING'
+        ORDER BY requested_at DESC
+    </select>
+
+
+    <select id="existsByRentalId" resultType="java.lang.Boolean">
+    SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
+    FROM equipment_repairs
+    WHERE rental_id = #{rentalId}
+    </select>
+
+
+    <select id="selectRepairById" resultType="com.example.test.equipmentrepair.EquipmentRepairDto">
+    SELECT *
+    FROM equipment_repairs
+    WHERE id = #{id}
+    </select>
+
+
+
+    <update id="updateStatus">
+    UPDATE equipment_repairs
+    SET status = #{status},
+        handled_by = #{handledBy},
+        handled_at = NOW(),
+        rejection_reason = #{rejectionReason}
+    WHERE id = #{id}
+    </update>
+
+    <select id="selectLatestByRentalId" resultType="com.example.test.equipmentrepair.EquipmentRepairDto">
+        SELECT * FROM equipment_repairs
+        WHERE rental_id = #{rentalId}
+        ORDER BY requested_at DESC
+        LIMIT 1
+    </select>
+            
+
+</mapper>

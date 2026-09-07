@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.chat.ChatRoomRepository">
+
+    <resultMap id="ChatRoomResultMap" type="com.example.test.chat.ChatRoom">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="maxParticipants" column="max_participants"/>
+        <result property="isPrivate" column="is_private"/>
+        <result property="allowInvite" column="allow_invite"/>
+        <result property="saveMessageHistory" column="save_message_history"/>
+        <result property="isMain" column="is_main"/>
+        <result property="projectId" column="project_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.example.test.chat.ChatRoom">
+        INSERT INTO chat_rooms
+        (name, description, max_participants, is_private, allow_invite, save_message_history, is_main, project_id, created_by, created_at, updated_at)
+        VALUES
+        (#{name}, #{description}, #{maxParticipants}, #{isPrivate}, #{allowInvite}, #{saveMessageHistory}, #{isMain}, #{projectId}, #{createdBy}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="com.example.test.chat.ChatRoom">
+        UPDATE chat_rooms
+        SET name=#{name}, 
+            description=#{description}, 
+            max_participants=#{maxParticipants}, 
+            is_private=#{isPrivate},
+            allow_invite=#{allowInvite}, 
+            save_message_history=#{saveMessageHistory}, 
+            is_main=#{isMain},
+            project_id=#{projectId}, 
+            updated_at=NOW()
+        WHERE id=#{id}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM chat_rooms WHERE id=#{id}
+    </delete>
+
+    <select id="findById" parameterType="long" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE id=#{id}
+    </select>
+
+    <select id="findByProjectId" parameterType="long" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE project_id=#{projectId}
+    </select>
+
+    <select id="findByIsPrivate" parameterType="boolean" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE is_private=#{isPrivate}
+    </select>
+
+    <select id="findByName" parameterType="string" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE name LIKE CONCAT('%', #{name}, '%')
+    </select>
+
+    <select id="findByType" parameterType="string" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE type=#{type}
+    </select>
+
+    <select id="findByStatus" parameterType="string" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE status=#{status}
+    </select>
+
+    <select id="findByCreatedAtBetween" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE created_at BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <select id="findByUpdatedAtBetween" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE updated_at BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <select id="findAll" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms
+    </select>
+
+    <select id="existsByProjectIdAndIsMainTrue" parameterType="long" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM chat_rooms 
+            WHERE project_id = #{projectId} AND is_main = true
+        )
+    </select>
+
+    <select id="searchRoomsByName" parameterType="string" resultMap="ChatRoomResultMap">
+        SELECT * FROM chat_rooms WHERE name LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
+
+</mapper>

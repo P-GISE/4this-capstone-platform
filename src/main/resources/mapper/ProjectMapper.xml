@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.test.project.mapper.ProjectMapper">
+
+    <!-- Project -->
+    <insert id="createProject" parameterType="com.example.test.project.ProjectDto" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO projects (title, description, status, created_by)
+        VALUES (#{title}, #{description}, #{status}, #{createdBy})
+    </insert>
+
+    <select id="findProjectById" resultType="com.example.test.project.ProjectDto">
+        SELECT * FROM projects WHERE id = #{id}
+    </select>
+
+    <select id="findAllProjects" resultType="com.example.test.project.ProjectDto">
+        SELECT * FROM projects ORDER BY created_at DESC
+    </select>
+
+    <update id="updateProject" parameterType="com.example.test.project.ProjectDto">
+        UPDATE projects
+        SET title = #{title},
+            description = #{description},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteProject" parameterType="long">
+        DELETE FROM projects WHERE id = #{id}
+    </delete>
+
+    <!-- Project Members -->
+    <insert id="addProjectMember" parameterType="com.example.test.project.ProjectMemberDto">
+        INSERT INTO project_members (project_id, user_id, role, is_approved)
+        VALUES (#{projectId}, #{userId}, #{role}, #{isApproved})
+    </insert>
+
+    <select id="findMembersByProjectId" resultType="com.example.test.project.ProjectMemberDto">
+        SELECT
+            pm.project_id,
+            pm.user_id,
+            pm.role,
+            pm.is_approved AS isApproved,
+            u.name AS userName
+        FROM project_members pm
+        JOIN users u ON pm.user_id = u.id
+        WHERE pm.project_id = #{projectId}
+    </select>
+
+    <select id="findProjectMemberByUserIdAndProjectId" resultType="com.example.test.project.ProjectMemberDto">
+        SELECT
+            pm.project_id,
+            pm.user_id,
+            pm.role,
+            pm.is_approved AS isApproved,
+            u.name AS userName
+        FROM project_members pm
+        JOIN users u ON pm.user_id = u.id
+        WHERE pm.user_id = #{userId} AND pm.project_id = #{projectId}
+    </select>
+
+    <delete id="deleteProjectMember" >
+        DELETE FROM project_members WHERE project_id = #{projectId} AND user_id = #{userId}
+    </delete>
+
+    <update id="approveProjectMember">
+        UPDATE project_members
+        SET is_approved = 1
+        WHERE project_id = #{projectId} AND user_id = #{userId}
+    </update>
+    
+    <update id="updateMemberRole">
+        UPDATE project_members
+        SET role = #{newRole}
+        WHERE project_id = #{projectId} AND user_id = #{userId}
+    </update>
+
+    <!-- Project Tasks -->
+    <insert id="createTask" parameterType="com.example.test.project.ProjectTaskDto" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project_tasks (project_id, title, description, start_date, due_date, assigned_to, status, priority, color, created_by)
+        VALUES (#{projectId}, #{title}, #{description}, #{startDate}, #{dueDate}, #{assignedTo}, #{status}, #{priority}, #{color}, #{createdBy})
+    </insert>
+
+    <select id="findTasksByProjectId" resultType="com.example.test.project.ProjectTaskDto">
+        SELECT pt.*
+        FROM project_tasks pt
+        WHERE pt.project_id = #{projectId}
+        ORDER BY pt.created_at
+    </select>
+
+    <update id="updateTask" parameterType="com.example.test.project.ProjectTaskDto">
+        UPDATE project_tasks
+        SET title = #{title}, description = #{description}, start_date = #{startDate}, due_date = #{dueDate}, assigned_to = #{assignedTo}, status = #{status}, priority = #{priority}, color = #{color}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteTask" parameterType="long">
+        DELETE FROM project_tasks WHERE id = #{id}
+    </delete>
+    
+    <select id="findProjectsByUserId" parameterType="long" resultType="com.example.test.project.ProjectDto">
+        SELECT
+            p.id,
+            p.title,
+            p.description,
+            p.status,
+            p.created_by,
+            p.created_at,
+            p.updated_at,
+            pm.role
+        FROM
+            projects p
+        JOIN
+            project_members pm ON p.id = pm.project_id
+        WHERE
+            pm.user_id = #{userId} AND pm.is_approved = true
+    </select>
+
+    <!-- Project Reports -->
+    <insert id="createReport" parameterType="com.example.test.project.ProjectReportDto">
+        INSERT INTO project_reports (project_id, title, description, file_name, file_path, file_size, uploaded_by)
+        VALUES (#{projectId}, #{title}, #{description}, #{fileName}, #{filePath}, #{fileSize}, #{uploadedBy})
+    </insert>
+
+    <select id="findReportsByProjectId" resultType="com.example.test.project.ProjectReportDto">
+        SELECT id, project_id, title, description, file_name, file_path, file_size, uploaded_by, uploaded_at 
+        FROM project_reports 
+        WHERE project_id = #{projectId} 
+        ORDER BY uploaded_at DESC
+    </select>
+
+    <select id="findReportById" resultType="com.example.test.project.ProjectReportDto">
+        SELECT id, project_id, title, description, file_name, file_path, file_size, uploaded_by, uploaded_at 
+        FROM project_reports 
+        WHERE id = #{reportId}
+    </select>
+
+</mapper> 

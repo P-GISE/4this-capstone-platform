@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.ai.AiQuestionRepository">
+
+    <!-- AI 질문 결과 매핑 -->
+    <resultMap id="AiQuestionResultMap" type="com.example.test.ai.AiQuestion">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="contextType" column="context_type"/>
+        <result property="targetId" column="target_id"/>
+        <result property="question" column="question"/>
+        <result property="category" column="category"/>
+        <result property="isAnswered" column="is_answered"/>
+        <result property="answeredInSeconds" column="answered_in_seconds"/>
+        <result property="attachmentId" column="attachment_id"/>
+        <result property="createdAt" column="created_at" javaType="java.sql.Timestamp"/>
+    </resultMap>
+
+    <!-- 질문 등록 -->
+    <insert id="insertQuestion" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_questions
+        (user_id, context_type, target_id, question, category, is_answered, answered_in_seconds, attachment_id)
+        VALUES
+        (#{userId}, #{contextType}, #{targetId}, #{question}, #{category}, #{isAnswered}, #{answeredInSeconds}, #{attachmentId})
+    </insert>
+
+    <!-- 대화방별 질문 리스트 -->
+    <select id="findByConversationId" resultType="com.example.test.ai.AiQuestion">
+        SELECT * FROM ai_questions WHERE conversation_id = #{conversationId} ORDER BY created_at ASC
+    </select>
+
+    <!-- 사용자별 질문 리스트 -->
+    <select id="findByUserId" resultMap="AiQuestionResultMap">
+        SELECT * FROM ai_questions WHERE user_id = #{userId} ORDER BY created_at DESC
+    </select>
+
+    <!-- 단일 질문 조회 -->
+    <select id="findById" resultMap="AiQuestionResultMap">
+        SELECT * FROM ai_questions WHERE id = #{id}
+    </select>
+
+    <!-- 컨텍스트 타입별 질문 조회 -->
+    <select id="findByContextType" parameterType="String" resultMap="AiQuestionResultMap">
+        SELECT * FROM ai_questions WHERE context_type = #{contextType} ORDER BY created_at DESC
+    </select>
+
+    <!-- 답변 완료 상태 업데이트 -->
+    <update id="updateAnsweredStatus">
+        UPDATE ai_questions SET is_answered = #{isAnswered}, answered_in_seconds = #{answeredInSeconds} WHERE id = #{questionId}
+    </update>
+
+    <!-- 질문 수정 -->
+    <update id="updateQuestion">
+        UPDATE ai_questions SET question = #{question}, category = #{category}, context_type = #{contextType}, target_id = #{targetId}, attachment_id = #{attachmentId} WHERE id = #{id}
+    </update>
+
+    <!-- 질문 삭제 -->
+    <delete id="deleteById">
+        DELETE FROM ai_questions WHERE id = #{id}
+    </delete>
+
+    <!-- 사용자별 총 질문 개수 -->
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM ai_questions WHERE user_id = #{userId}
+    </select>
+
+</mapper> 

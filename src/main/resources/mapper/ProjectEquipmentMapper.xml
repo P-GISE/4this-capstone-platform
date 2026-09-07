@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.project.ProjectEquipmentDao">
+
+    <!-- 프로젝트에 기자재 추가 -->
+    <insert id="insertProjectEquipment" parameterType="com.example.test.project.ProjectEquipmentDto">
+        INSERT INTO project_equipment 
+        (project_id, equipment_id, rental_id, added_by, purpose)
+        VALUES 
+        (#{projectId}, #{equipmentId}, #{rentalId}, #{addedBy}, #{purpose})
+    </insert>
+
+    <!-- 프로젝트별 등록된 기자재 목록 조회 (상세 정보 포함) -->
+    <select id="selectProjectEquipmentsByProjectId" resultType="com.example.test.project.ProjectEquipmentDto">
+        SELECT 
+            pe.id,
+            pe.project_id AS projectId,
+            pe.equipment_id AS equipmentId,
+            pe.rental_id AS rentalId,
+            pe.added_by AS addedBy,
+            pe.purpose,
+            pe.added_at AS addedAt,
+            e.name AS equipmentName,
+            u.name AS renterName
+        FROM project_equipment pe
+        LEFT JOIN equipment e ON pe.equipment_id = e.id
+        LEFT JOIN equipment_rentals er ON pe.rental_id = er.id
+        LEFT JOIN users u ON er.user_id = u.id
+        WHERE pe.project_id = #{projectId}
+        ORDER BY pe.added_at DESC
+    </select>
+
+    <!-- 프로젝트에서 기자재 제거 -->
+    <delete id="deleteProjectEquipment">
+        DELETE FROM project_equipment WHERE id = #{id}
+    </delete>
+
+    <!-- 특정 프로젝트의 특정 대여건이 이미 등록되어 있는지 확인 -->
+    <select id="countByProjectIdAndRentalId" resultType="int">
+        SELECT COUNT(*) 
+        FROM project_equipment 
+        WHERE project_id = #{projectId} AND rental_id = #{rentalId}
+    </select>
+
+    <!-- 사용자가 프로젝트에 등록 가능한 대여중인 기자재 목록 조회 -->
+    <select id="selectAvailableEquipmentsForProject" resultType="com.example.test.project.ProjectEquipmentDto">
+        SELECT 
+            er.id AS rentalId,
+            er.equipment_id AS equipmentId,
+            er.user_id AS addedBy,
+            e.name AS equipmentName,
+            u.name AS renterName,
+            er.purpose
+        FROM equipment_rentals er
+        LEFT JOIN equipment e ON er.equipment_id = e.id
+        LEFT JOIN users u ON er.user_id = u.id
+        WHERE er.user_id = #{userId}
+        AND er.return_date IS NULL
+        AND er.is_approved = TRUE
+        AND er.status IN ('APPROVED', 'RENTED')
+        AND NOT EXISTS (
+            SELECT 1 FROM project_equipment pe 
+            WHERE pe.project_id = #{projectId} AND pe.rental_id = er.id
+        )
+        ORDER BY er.rent_date DESC
+    </select>
+
+    <!-- 프로젝트 멤버들이 대여중이면서 프로젝트에 등록 가능한 기자재 목록 -->
+    <select id="selectAvailableEquipmentsForProjectMembers" resultType="com.example.test.project.ProjectEquipmentDto">
+        SELECT 
+            er.id AS rentalId,
+            er.equipment_id AS equipmentId,
+            er.user_id AS addedBy,
+            e.name AS equipmentName,
+            u.name AS renterName,
+            er.purpose
+        FROM equipment_rentals er
+        LEFT JOIN equipment e ON er.equipment_id = e.id
+        LEFT JOIN users u ON er.user_id = u.id
+        WHERE er.user_id IN
+        <foreach item="memberId" collection="memberIds" open="(" separator="," close=")">
+            #{memberId}
+        </foreach>
+        AND er.return_date IS NULL
+        AND er.is_approved = TRUE
+        AND er.status IN ('APPROVED', 'RENTED')
+        AND NOT EXISTS (
+            SELECT 1 FROM project_equipment pe 
+            WHERE pe.project_id = #{projectId} AND pe.rental_id = er.id
+        )
+        ORDER BY er.rent_date DESC, u.name ASC
+    </select>
+
+</mapper> 

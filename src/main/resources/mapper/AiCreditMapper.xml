@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.ai.mapper.AiCreditMapper">
+
+    <!-- 사용자 크레딧 정보 조회 -->
+    <select id="selectUserCredit" resultType="com.example.test.ai.UserAiCreditDto">
+        SELECT 
+            user_id AS userId,
+            total_credits AS totalCredits,
+            used_credits AS usedCredits,
+            remaining_credits AS remainingCredits,
+            last_recharged_at AS lastRechargedAt,
+            created_at AS createdAt,
+            updated_at AS updatedAt
+        FROM user_ai_credits
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 사용자 크레딧 초기 생성 -->
+    <insert id="insertUserCredit" parameterType="com.example.test.ai.UserAiCreditDto">
+        INSERT INTO user_ai_credits 
+            (user_id, total_credits, used_credits, remaining_credits, created_at, updated_at)
+        VALUES 
+            (#{userId}, #{totalCredits}, 0, #{totalCredits}, NOW(), NOW())
+    </insert>
+
+    <!-- 크레딧 사용 (차감) -->
+    <update id="useCredit">
+        UPDATE user_ai_credits
+        SET used_credits = used_credits + #{creditsToUse},
+            remaining_credits = remaining_credits - #{creditsToUse},
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND remaining_credits >= #{creditsToUse}
+    </update>
+
+    <!-- 크레딧 충전 (추가) -->
+    <update id="rechargeCredit">
+        UPDATE user_ai_credits
+        SET total_credits = total_credits + #{creditsToAdd},
+            remaining_credits = remaining_credits + #{creditsToAdd},
+            last_recharged_at = NOW(),
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 크레딧 사용 로그 저장 -->
+    <insert id="insertCreditLog" parameterType="com.example.test.ai.AiCreditLogDto">
+        INSERT INTO ai_credit_logs 
+            (user_id, question_id, credits_used, action_type, description, created_at)
+        VALUES 
+            (#{userId}, #{questionId}, #{creditsUsed}, #{actionType}, #{description}, NOW())
+    </insert>
+
+    <!-- 사용자의 크레딧 사용 내역 조회 -->
+    <select id="selectCreditLogs" resultType="com.example.test.ai.AiCreditLogDto">
+        SELECT 
+            id,
+            user_id AS userId,
+            question_id AS questionId,
+            credits_used AS creditsUsed,
+            action_type AS actionType,
+            description,
+            created_at AS createdAt
+        FROM ai_credit_logs
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 남은 크레딧 확인 -->
+    <select id="getRemainingCredits" resultType="java.lang.Integer">
+        SELECT remaining_credits
+        FROM user_ai_credits
+        WHERE user_id = #{userId}
+    </select>
+
+</mapper>
+

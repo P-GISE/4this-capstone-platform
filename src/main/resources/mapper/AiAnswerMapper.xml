@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.ai.AiAnswerRepository">
+
+    <!-- AI 응답 결과 매핑 -->
+    <resultMap id="AiAnswerResultMap" type="com.example.test.ai.AiAnswer">
+        <id property="id" column="id"/>
+        <result property="questionId" column="question_id"/>
+        <result property="answer" column="answer"/>
+        <result property="tokenUsage" column="token_usage"/>
+        <result property="isSuccessful" column="is_successful"/>
+        <result property="createdAt" column="created_at" javaType="java.sql.Timestamp"/>
+    </resultMap>
+
+    <!-- 답변 저장 -->
+    <insert id="insertAnswer" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_answers (question_id, answer, token_usage, is_successful)
+        VALUES (#{questionId}, #{answer}, #{tokenUsage}, #{isSuccessful})
+    </insert>
+
+    <!-- ID로 답변 조회 -->
+    <select id="findById" resultMap="AiAnswerResultMap">
+        SELECT * FROM ai_answers WHERE id = #{id}
+    </select>
+
+    <!-- 질문 ID로 답변 조회 -->
+    <select id="findByQuestionId" resultMap="AiAnswerResultMap">
+        SELECT * FROM ai_answers WHERE question_id = #{questionId}
+    </select>
+
+    <!-- 여러 질문에 대한 답변 조회 -->
+    <select id="findByQuestionIds" resultType="com.example.test.ai.AiAnswer">
+        SELECT * FROM ai_answers WHERE question_id IN
+        <foreach collection="questionIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 성공한 답변만 조회 -->
+    <select id="findSuccessfulAnswers" resultType="com.example.test.ai.AiAnswer">
+        SELECT * FROM ai_answers WHERE is_successful = TRUE
+    </select>
+
+    <!-- 답변 수정 -->
+    <update id="updateAnswer">
+        UPDATE ai_answers SET answer = #{answer}, token_usage = #{tokenUsage}, is_successful = #{isSuccessful} WHERE id = #{id}
+    </update>
+
+    <!-- 답변 삭제 -->
+    <delete id="deleteById">
+        DELETE FROM ai_answers WHERE id = #{id}
+    </delete>
+
+    <!-- 질문 ID로 답변 삭제 -->
+    <delete id="deleteByQuestionId">
+        DELETE FROM ai_answers WHERE question_id = #{questionId}
+    </delete>
+
+    <!-- 총 토큰 사용량 조회 -->
+    <select id="getTotalTokenUsage" resultType="long">
+        SELECT SUM(token_usage) FROM ai_answers
+    </select>
+
+    <!-- 성공률 통계 -->
+    <select id="getSuccessRate" resultType="double">
+        SELECT (COUNT(*) * 1.0) / (SELECT COUNT(*) FROM ai_answers) FROM ai_answers WHERE is_successful = TRUE
+    </select>
+
+</mapper> 

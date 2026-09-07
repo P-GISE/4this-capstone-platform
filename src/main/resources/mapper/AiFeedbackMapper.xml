@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.ai.AiFeedbackRepository">
+
+    <!-- AI 피드백 결과 매핑 -->
+    <resultMap id="AiFeedbackResultMap" type="com.example.test.ai.AiFeedback">
+        <id property="id" column="id"/>
+        <result property="answerId" column="answer_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="score" column="score"/>
+        <result property="comment" column="comment"/>
+        <result property="feedbackType" column="feedback_type"/>
+        <result property="isRelevant" column="is_relevant"/>
+        <result property="requestedEdit" column="requested_edit"/>
+        <result property="createdAt" column="created_at" javaType="java.sql.Timestamp"/>
+    </resultMap>
+
+    <!-- 피드백 등록 -->
+    <insert id="insertFeedback" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_feedback (answer_id, user_id, score, comment, feedback_type, is_relevant, requested_edit)
+        VALUES (#{answerId}, #{userId}, #{score}, #{comment}, #{feedbackType}, #{isRelevant}, #{requestedEdit})
+    </insert>
+
+    <!-- ID로 피드백 조회 -->
+    <select id="findById" parameterType="Long" resultMap="AiFeedbackResultMap">
+        SELECT * FROM ai_feedback WHERE id = #{id}
+    </select>
+
+    <!-- 답변별 피드백 조회 -->
+    <select id="findByAnswerId" resultMap="AiFeedbackResultMap">
+        SELECT * FROM ai_feedback WHERE answer_id = #{answerId}
+    </select>
+
+    <!-- 사용자별 피드백 조회 -->
+    <select id="findByUserId" resultMap="AiFeedbackResultMap">
+        SELECT * FROM ai_feedback WHERE user_id = #{userId}
+    </select>
+
+    <!-- 피드백 유형별 조회 -->
+    <select id="findByFeedbackType" resultMap="AiFeedbackResultMap">
+        SELECT * FROM ai_feedback WHERE feedback_type = #{feedbackType}
+    </select>
+
+    <!-- 점수별 피드백 조회 -->
+    <select id="findByScore" resultMap="AiFeedbackResultMap">
+        SELECT * FROM ai_feedback WHERE score = #{score}
+    </select>
+
+    <!-- 피드백 수정 -->
+    <update id="updateFeedback">
+        UPDATE ai_feedback SET score = #{score}, comment = #{comment}, feedback_type = #{feedbackType}, is_relevant = #{isRelevant}, requested_edit = #{requestedEdit} WHERE id = #{id}
+    </update>
+
+    <!-- 피드백 삭제 -->
+    <delete id="deleteById">
+        DELETE FROM ai_feedback WHERE id = #{id}
+    </delete>
+
+    <!-- 답변 ID로 피드백 삭제 -->
+    <delete id="deleteByAnswerId">
+        DELETE FROM ai_feedback WHERE answer_id = #{answerId}
+    </delete>
+
+    <!-- 평균 점수 조회 -->
+    <select id="getAverageScore" resultType="double">
+        SELECT AVG(score) FROM ai_feedback
+    </select>
+
+    <!-- 답변별 평균 점수 조회 -->
+    <select id="getAverageScoreByAnswerId" resultType="double">
+        SELECT AVG(score) FROM ai_feedback WHERE answer_id = #{answerId}
+    </select>
+
+    <!-- 피드백 유형별 개수 통계 -->
+    <select id="countByFeedbackType" resultType="int">
+        SELECT COUNT(*) FROM ai_feedback WHERE feedback_type = #{feedbackType}
+    </select>
+
+</mapper> 

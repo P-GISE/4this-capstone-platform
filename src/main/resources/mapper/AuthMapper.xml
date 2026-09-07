@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.auth.mapper.AuthMapper">
+
+    <!-- 1. users 테이블에 사용자 등록 -->
+    <insert id="insertUser"
+            parameterType="com.example.test.auth.AuthDto"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO users
+            (username, password, name, email, phone, role, is_email_verified, status)
+        VALUES
+            (#{username}, #{password}, #{name}, #{email}, #{phone}, #{role}, false, true)
+    </insert>
+
+    <!-- 2. username으로 사용자 조회 -->
+    <select id="findByUsername"
+            resultType="com.example.test.auth.AuthDto"
+            parameterType="String">
+        SELECT
+            id,
+            username,
+            password,
+            name,
+            email,
+            phone,
+            role,
+            is_email_verified    AS isEmailVerified,
+            status,
+            last_login_at        AS lastLoginAt,
+            created_at           AS createdAt,
+            updated_at           AS updatedAt
+        FROM users
+        WHERE username = #{username}
+    </select>
+
+    <!-- 3. email로 사용자 조회 -->
+    <select id="findByEmail"
+            resultType="com.example.test.auth.AuthDto"
+            parameterType="String">
+        SELECT
+            id,
+            username,
+            password,
+            name,
+            email,
+            phone,
+            role,
+            is_email_verified    AS isEmailVerified,
+            status,
+            last_login_at        AS lastLoginAt,
+            created_at           AS createdAt,
+            updated_at           AS updatedAt
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <!-- 4. 이메일로 비밀번호 업데이트 -->
+    <update id="updatePasswordByEmail">
+        UPDATE users
+        SET password = #{password}
+        WHERE email = #{email}
+    </update>
+
+    <!-- 5. username으로 비밀번호 업데이트 -->
+    <update id="updatePasswordByUsername">
+        UPDATE users
+        SET password = #{password}
+        WHERE username = #{username}
+    </update>
+
+    <!-- 6. username으로 이메일 인증 처리 -->
+    <update id="updateEmailVerified">
+        UPDATE users
+        SET is_email_verified = true
+        WHERE username = #{username}
+    </update>
+
+    <!-- 7. 학생 프로필 등록 -->
+    <insert id="insertStudentProfile"
+            parameterType="com.example.test.auth.StudentProfileDto">
+        INSERT INTO student_profiles
+            (user_id, student_id, department, department_code,
+             university_name, grade, admission_year,
+             gender, birth_date, student_status)
+        VALUES
+            (#{userId}, #{studentId}, #{department}, #{departmentCode},
+             #{universityName}, #{grade}, #{admissionYear},
+             #{gender}, #{birthDate}, #{studentStatus})
+    </insert>
+
+    <!-- 8. 교수 프로필 등록 -->
+    <insert id="insertProfessorProfile"
+            parameterType="com.example.test.auth.ProfessorProfileDto">
+        INSERT INTO professor_profiles
+            (user_id, professor_id, department, department_code,
+             university_name, position, gender, birth_date)
+        VALUES
+            (#{userId}, #{professorId}, #{department}, #{departmentCode},
+             #{universityName}, #{position}, #{gender}, #{birthDate})
+    </insert>
+
+    <!-- 9. 관리자 프로필 등록 -->
+    <insert id="insertAdminProfile"
+            parameterType="com.example.test.auth.AdminProfileDto">
+        INSERT INTO admin_profiles
+            (user_id, admin_id, department, department_code,
+             position, access_level, role_type, gender, birth_date)
+        VALUES
+            (#{userId}, #{adminId}, #{department}, #{departmentCode},
+             #{position}, #{accessLevel}, #{roleType}, #{gender}, #{birthDate})
+    </insert>
+
+    <!-- 10. 교직원 프로필 등록 -->
+    <insert id="insertStaffProfile"
+            parameterType="com.example.test.auth.StaffProfileDto">
+        INSERT INTO staff_profiles
+            (user_id, staff_id, department, department_code,
+             position, gender, birth_date)
+        VALUES
+            (#{userId}, #{staffId}, #{department}, #{departmentCode},
+             #{position}, #{gender}, #{birthDate})
+    </insert>
+
+
+    <!-- 조교 프로필 등록 -->
+    <insert id="insertAssistantProfile"
+            parameterType="com.example.test.auth.AssistantProfileDto">
+        INSERT INTO assistant_profiles
+            (user_id,
+            assistant_id,
+            lab_name,
+            department,      <!-- 실제 테이블에 있는 컬럼 -->
+            major_field,     <!-- 실제 테이블에 있는 컬럼 -->
+            gender,
+            birth_date)
+        VALUES
+            (#{userId},
+            #{assistantId},
+            #{labName},
+            #{department},   <!-- DTO의 department 필드와 매핑 -->
+            #{majorField},   <!-- DTO의 majorField 필드와 매핑 -->
+            #{gender},
+            #{birthDate})
+    </insert>
+
+
+    
+    <update id="updateLastLoginAt" parameterType="long">
+        UPDATE users
+        SET last_login_at = NOW()
+        WHERE id = #{userId}
+    </update>    
+
+    <!-- 학생 프로필 조회 -->
+    <select id="selectStudentProfile" parameterType="long" resultType="com.example.test.auth.StudentProfileDto">
+        SELECT
+            user_id         AS userId,
+            student_id      AS studentId,
+            department,
+            department_code AS departmentCode,
+            university_name AS universityName,
+            grade,
+            admission_year  AS admissionYear,
+            gender,
+            birth_date      AS birthDate,
+            student_status  AS studentStatus
+        FROM student_profiles
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 교수 프로필 조회 -->
+    <select id="selectProfessorProfile" parameterType="long" resultType="com.example.test.auth.ProfessorProfileDto">
+        SELECT
+            user_id        AS userId,
+            professor_id   AS professorId,
+            department,
+            department_code AS departmentCode,
+            university_name AS universityName,
+            position,
+            gender,
+            birth_date     AS birthDate
+        FROM professor_profiles
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 교직원 프로필 조회 -->
+    <select id="selectStaffProfile" parameterType="long" resultType="com.example.test.auth.StaffProfileDto">
+        SELECT
+            user_id      AS userId,
+            staff_id     AS staffId,
+            department,
+            department_code AS departmentCode,
+            position,
+            gender,
+            birth_date   AS birthDate
+        FROM staff_profiles
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 조교 프로필 조회 -->
+    <select id="selectAssistantProfile" parameterType="long" resultType="com.example.test.auth.AssistantProfileDto">
+        SELECT
+            user_id       AS userId,
+            assistant_id  AS assistantId,
+            lab_name      AS labName,
+            university_name AS universityName,
+            gender,
+            birth_date    AS birthDate
+        FROM assistant_profiles
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 관리자 프로필 조회 -->
+    <select id="selectAdminProfile" parameterType="long" resultType="com.example.test.auth.AdminProfileDto">
+        SELECT
+            user_id       AS userId,
+            admin_id      AS adminId,
+            department,
+            department_code AS departmentCode,
+            position,
+            access_level  AS accessLevel,
+            role_type     AS roleType,
+            gender,
+            birth_date    AS birthDate
+        FROM admin_profiles
+        WHERE user_id = #{userId}
+    </select>
+
+
+
+    <!-- 비밀번호만 업데이트 -->
+    <update id="updatePassword">
+        UPDATE users 
+        SET password = #{password}
+        WHERE username = #{username}
+    </update>
+
+    <!-- 사용자 삭제 -->
+    <delete id="deleteUser" parameterType="long">
+        DELETE FROM users WHERE id = #{userId}
+    </delete>
+
+    <!-- 1) 전체 사용자 기본 정보 조회 -->
+    <select id="selectAllUsersBasic"
+            resultType="com.example.test.auth.AuthDto">
+        SELECT
+            id,
+            username,
+            password,
+            name,
+            email,
+            phone,
+            role,
+            is_email_verified AS isEmailVerified,
+            status,
+            last_login_at       AS lastLoginAt,
+            created_at          AS createdAt,
+            updated_at          AS updatedAt
+        FROM users
+        ORDER BY id ASC
+    </select>
+
+    <!-- 2) ID로 사용자 기본 정보 조회 -->
+    <select id="findById"
+            resultType="com.example.test.auth.AuthDto"
+            parameterType="long">
+        SELECT
+            id,
+            username,
+            password,
+            name,
+            email,
+            phone,
+            role,
+            is_email_verified    AS isEmailVerified,
+            status,
+            last_login_at        AS lastLoginAt,
+            created_at           AS createdAt,
+            updated_at           AS updatedAt
+        FROM users
+        WHERE id = #{userId}
+    </select>
+
+    <!-- 3) ADMIN accessLevel 업데이트 -->
+    <update id="updateAdminAccessLevel"
+            parameterType="com.example.test.auth.AdminProfileDto">
+        UPDATE admin_profiles
+        SET access_level = #{accessLevel}
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 사용자 기본 정보 업데이트 -->
+    <update id="updateUser" parameterType="com.example.test.auth.AuthDto">
+        UPDATE users 
+           SET name  = #{name},
+               email = #{email},
+               phone = #{phone},
+               updated_at = NOW()
+         WHERE id = #{id}
+    </update>
+
+    <!-- **학생 프로필 업데이트** -->
+    <update id="updateStudentProfile" parameterType="com.example.test.auth.StudentProfileDto">
+        UPDATE student_profiles
+           SET department       = #{department},
+               student_id       = #{studentId},
+               department_code  = #{departmentCode},
+               university_name  = #{universityName},
+               grade            = #{grade},
+               admission_year   = #{admissionYear},
+               gender           = #{gender},
+               birth_date       = #{birthDate},
+               student_status   = #{studentStatus}
+         WHERE user_id = #{userId}
+    </update>
+
+    <!-- **교수 프로필 업데이트** -->
+    <update id="updateProfessorProfile" parameterType="com.example.test.auth.ProfessorProfileDto">
+        UPDATE professor_profiles
+           SET department       = #{department},
+               professor_id     = #{professorId},
+               department_code  = #{departmentCode},
+               university_name  = #{universityName},
+               position         = #{position},
+               gender           = #{gender},
+               birth_date       = #{birthDate}
+         WHERE user_id = #{userId}
+    </update>
+
+    <!-- **교직원 프로필 업데이트** -->
+    <update id="updateStaffProfile" parameterType="com.example.test.auth.StaffProfileDto">
+        UPDATE staff_profiles
+           SET department       = #{department},
+               staff_id         = #{staffId},
+               department_code  = #{departmentCode},
+               position         = #{position},
+               gender           = #{gender},
+               birth_date       = #{birthDate}
+         WHERE user_id = #{userId}
+    </update>
+
+    <!-- **조교 프로필 업데이트** -->
+    <update id="updateAssistantProfile" parameterType="com.example.test.auth.AssistantProfileDto">
+        UPDATE assistant_profiles
+           SET lab_name         = #{labName},
+               assistant_id     = #{assistantId},
+               university_name  = #{universityName},
+               gender           = #{gender},
+               birth_date       = #{birthDate}
+         WHERE user_id = #{userId}
+    </update>
+
+    <!-- **관리자 프로필 업데이트** -->
+    <update id="updateAdminProfile" parameterType="com.example.test.auth.AdminProfileDto">
+        UPDATE admin_profiles
+        SET department       = #{department},
+            admin_id         = #{adminId},
+            department_code  = #{departmentCode},
+            position         = #{position},
+            role_type        = #{roleType},
+            gender           = #{gender},
+            birth_date       = #{birthDate}
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="selectById" resultType="com.example.test.auth.AuthDto">
+        SELECT 
+            id, username, password, name, email, phone, role,
+            is_email_verified, status, last_login_at, created_at, updated_at
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <!-- 사용자 검색 (이름 또는 사용자명으로) -->
+    <select id="searchUsers" resultType="com.example.test.auth.AuthDto">
+        SELECT 
+            id, username, name, email, phone, role,
+            is_email_verified AS isEmailVerified, status, 
+            last_login_at AS lastLoginAt, created_at AS createdAt, updated_at AS updatedAt
+        FROM users
+        WHERE status = true 
+          AND is_email_verified = true
+          AND (name LIKE CONCAT('%', #{query}, '%') 
+               OR username LIKE CONCAT('%', #{query}, '%'))
+        ORDER BY name ASC
+        LIMIT 20
+    </select>
+
+</mapper>

@@ -1,0 +1,1054 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.chat.ChatDAO">
+    
+    <!-- ResultMap 정의 -->
+    <resultMap id="chatRoomMap" type="com.example.test.chat.ChatDTO">
+        <result property="roomId" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="maxParticipants" column="max_participants"/>
+        <result property="isPrivate" column="is_private"/>
+        <result property="allowInvite" column="allow_invite"/>
+        <result property="saveMessageHistory" column="save_message_history"/>
+        <result property="isMain" column="is_main"/>
+        <result property="projectId" column="project_id"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="participantCount" column="participant_count"/>
+    </resultMap>
+    
+    <!-- 메인 채팅방 존재 여부 확인 -->
+    <select id="existsMainChatRoom" parameterType="long" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM chat_rooms
+        WHERE project_id = #{projectId}
+        AND is_main = true
+    </select>
+    
+    <!-- 메인 채팅방 생성 -->
+    <insert id="createMainChatRoom" parameterType="com.example.test.chat.ChatRoom">
+        INSERT INTO chat_rooms (
+            name,
+            description,
+            max_participants,
+            is_private,
+            allow_invite,
+            save_message_history,
+            is_main,
+            project_id,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{name},
+            #{description},
+            #{maxParticipants},
+            #{isPrivate},
+            #{allowInvite},
+            #{saveMessageHistory},
+            #{isMain},
+            #{projectId},
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 채팅방 목록 조회 -->
+    <select id="getChatRooms" resultMap="chatRoomMap" parameterType="long">
+        SELECT 
+            r.id,
+            r.name,
+            r.description,
+            r.max_participants,
+            r.is_private,
+            r.allow_invite,
+            r.save_message_history,
+            r.is_main,
+            r.project_id,
+            r.created_by,
+            r.created_at,
+            r.updated_at,
+            (SELECT COUNT(*) FROM chat_participants p WHERE p.room_id = r.id) AS participant_count
+        FROM chat_rooms r 
+        WHERE r.project_id = #{projectId} 
+        AND r.is_deleted = false
+        ORDER BY r.created_at DESC
+    </select>
+
+    <!-- 채팅방 상세 조회 -->
+    <select id="getChatRoom" resultMap="chatRoomMap" parameterType="long">
+        SELECT 
+            r.*,
+            (SELECT COUNT(*) FROM chat_participants p WHERE p.room_id = r.id) AS participant_count
+        FROM chat_rooms r 
+        WHERE r.id = #{roomId}
+    </select>
+
+    <!-- 채팅방 생성 -->
+    <insert id="createChatRoom" parameterType="com.example.test.chat.ChatDTO" useGeneratedKeys="true" keyProperty="roomId">
+        INSERT INTO chat_rooms (
+            project_id,
+            name,
+            description,
+            max_participants,
+            is_private,
+            allow_invite,
+            save_message_history,
+            is_main,
+            created_by,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{projectId},
+            #{name},
+            #{description},
+            #{maxParticipants},
+            #{isPrivate},
+            #{allowInvite},
+            #{saveMessageHistory},
+            #{isMain},
+            #{createdBy},
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 채팅방 수정 -->
+    <update id="updateChatRoom" parameterType="com.example.test.chat.ChatDTO">
+        UPDATE chat_rooms
+        SET name = #{roomName}
+        WHERE room_id = #{roomId}
+    </update>
+
+    <!-- 채팅방 삭제 -->
+    <update id="deleteChatRoom">
+        UPDATE chat_rooms
+        SET is_deleted = true,
+            deleted_at = CURRENT_TIMESTAMP
+        WHERE room_id = #{roomId}
+    </update>
+
+    <!-- 채팅방 검색 -->
+    <select id="searchChatRooms" parameterType="map" resultType="com.example.test.chat.ChatDTO">
+        SELECT r.*, 
+               (SELECT COUNT(*) FROM chat_messages m WHERE m.room_id = r.room_id) as message_count,
+               (SELECT MAX(created_at) FROM chat_messages m WHERE m.room_id = r.room_id) as last_message_time
+        FROM chat_rooms r
+        WHERE r.project_id = #{projectId}
+        AND r.is_deleted = false
+        <if test="keyword != null and keyword != ''">
+            AND r.name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        ORDER BY r.created_at DESC
+    </select>
+
+    <!-- 채팅방 권한 관리 -->
+    <insert id="setRoomPermission">
+        INSERT INTO chat_room_permissions (
+            room_id,
+            user_id,
+            permission_type,
+            granted_by,
+            granted_at
+        ) VALUES (
+            #{roomId},
+            #{userId},
+            #{permissionType},
+            #{grantedBy},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="getUserPermissions" resultType="string">
+        SELECT permission_type
+        FROM chat_room_permissions
+        WHERE room_id = #{roomId}
+        AND user_id = #{userId}
+    </select>
+
+    <!-- 채팅방 참여자 추가 -->
+    <insert id="addChatParticipant" parameterType="com.example.test.chat.ChatParticipantDTO">
+        INSERT INTO chat_participants (
+            room_id,
+            user_id,
+            user_name,
+            joined_at,
+            last_read_at
+        ) VALUES (
+            #{roomId},
+            #{userId},
+            #{userName},
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 채팅방 참여자 목록 조회 -->
+    <select id="getChatParticipants" parameterType="long" resultType="com.example.test.chat.ChatParticipantDTO">
+        SELECT *
+        FROM chat_participants
+        WHERE room_id = #{roomId}
+        ORDER BY joined_at ASC
+    </select>
+
+    <!-- 마지막 읽은 시간 업데이트 -->
+    <update id="updateLastReadTime">
+        UPDATE chat_participants
+        SET last_read_at = CURRENT_TIMESTAMP
+        WHERE room_id = #{roomId}
+        AND user_id = #{userId}
+    </update>
+
+    <!-- 읽지 않은 메시지 수 조회 (chat_reads 테이블 사용) -->
+    <select id="getUnreadMessageCount" resultType="int">
+        SELECT COUNT(*)
+        FROM chat_messages m
+        WHERE m.room_id = #{roomId}
+        AND m.sender_id != #{userId}  -- 본인이 보낸 메시지 제외
+        AND NOT EXISTS (
+            SELECT 1 FROM chat_reads r 
+            WHERE r.message_id = m.id 
+            AND r.user_id = #{userId}
+        )
+    </select>
+
+    <!-- 메시지 파일 저장 -->
+    <insert id="saveMessageFile" parameterType="com.example.test.chat.ChatMessageFileDTO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_message_files (
+            message_id,
+            file_name,
+            file_path,
+            file_size,
+            file_type,
+            original_file_name,
+            uploaded_at
+        ) VALUES (
+            #{messageId},
+            #{fileName},
+            #{filePath},
+            #{fileSize},
+            #{fileType},
+            #{originalFileName},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 메시지 파일 목록 조회 -->
+    <select id="getMessageFiles" parameterType="Long" resultType="com.example.test.chat.ChatMessageFileDTO">
+        SELECT * FROM chat_message_files 
+        WHERE message_id = #{messageId}
+        ORDER BY uploaded_at ASC
+    </select>
+    
+    <!-- 여러 메시지의 파일들을 한 번에 조회 (배치 쿼리) -->
+    <select id="getMessageFilesByMessageIds" parameterType="list" resultType="com.example.test.chat.ChatMessageFileDTO">
+        SELECT * FROM chat_message_files 
+        WHERE message_id IN
+        <foreach collection="list" item="messageId" open="(" separator="," close=")">
+            #{messageId}
+        </foreach>
+        ORDER BY message_id ASC, uploaded_at ASC
+    </select>
+    
+    <!-- 파일 ID로 파일 정보 조회 -->
+    <select id="getMessageFileById" parameterType="Long" resultType="com.example.test.chat.ChatMessageFileDTO">
+        SELECT * FROM chat_message_files 
+        WHERE id = #{fileId}
+    </select>
+
+    <!-- 채팅방 참여자 탈퇴 -->
+    <update id="leaveChatRoom">
+        UPDATE chat_participants
+        SET left_at = CURRENT_TIMESTAMP
+        WHERE room_id = #{roomId}
+        AND user_id = #{userId}
+    </update>
+
+    <!-- 채팅방 참여자 재참여 -->
+    <update id="rejoinChatRoom">
+        UPDATE chat_participants
+        SET joined_at = CURRENT_TIMESTAMP,
+            left_at = null
+        WHERE room_id = #{roomId}
+        AND user_id = #{userId}
+    </update>
+
+    <!-- 채팅방 초대 관련 -->
+    <insert id="createInvitation" parameterType="map">
+        INSERT INTO chat_invitations (
+            room_id,
+            inviter_id,
+            invitee_id,
+            status,
+            created_at
+        ) VALUES (
+            #{roomId},
+            #{inviterId},
+            #{inviteeId},
+            'PENDING',
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="updateInvitationStatus">
+        UPDATE chat_invitations
+        SET status = #{status},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE room_id = #{roomId}
+        AND invitee_id = #{inviteeId}
+    </update>
+
+    <select id="getPendingInvitations" parameterType="long" resultType="map">
+        SELECT i.*, r.name as name, u.name as inviter_name
+        FROM chat_invitations i
+        JOIN chat_rooms r ON i.room_id = r.id
+        JOIN users u ON i.inviter_id = u.id
+        WHERE i.invitee_id = #{userId}
+        AND i.status = 'PENDING'
+    </select>
+
+    <!-- 메시지 검색 -->
+    <select id="searchMessages" parameterType="map" resultType="com.example.test.chat.ChatMessageDTO">
+        SELECT m.*, u.name as sender_name
+        FROM chat_messages m
+        JOIN users u ON m.sender_id = u.id
+        WHERE m.room_id = #{roomId}
+        AND m.is_deleted = false
+        <if test="keyword != null and keyword != ''">
+            AND (
+                m.message LIKE CONCAT('%', #{keyword}, '%')
+                OR u.name LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="startDate != null">
+            AND m.sent_at >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND m.sent_at &lt;= #{endDate}
+        </if>
+        ORDER BY m.sent_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 채팅방 통계 -->
+    <select id="getRoomStatistics" parameterType="long" resultType="map">
+        SELECT 
+            COUNT(DISTINCT m.id) as total_messages,
+            COUNT(DISTINCT m.sender_id) as active_users,
+            COUNT(DISTINCT p.user_id) as total_participants,
+            MAX(m.sent_at) as last_activity,
+            COUNT(DISTINCT CASE WHEN m.message_type = 'FILE' THEN m.id END) as file_count,
+            COUNT(DISTINCT CASE WHEN m.is_pinned = true THEN m.id END) as pinned_messages
+        FROM chat_rooms r
+        LEFT JOIN chat_messages m ON r.id = m.room_id
+        LEFT JOIN chat_participants p ON r.id = p.room_id
+        WHERE r.id = #{roomId}
+        GROUP BY r.id
+    </select>
+
+    <select id="getUserActivityStats" parameterType="map" resultType="map">
+        SELECT 
+            u.id as user_id,
+            u.name as user_name,
+            COUNT(m.id) as message_count,
+            MAX(m.sent_at) as last_message_time,
+            COUNT(DISTINCT CASE WHEN m.message_type = 'FILE' THEN m.id END) as file_count
+        FROM users u
+        JOIN chat_participants p ON u.id = p.user_id
+        LEFT JOIN chat_messages m ON u.id = m.sender_id AND m.room_id = #{roomId}
+        WHERE p.room_id = #{roomId}
+        GROUP BY u.id, u.name
+        ORDER BY message_count DESC
+    </select>
+
+    <!-- 메시지 통계 -->
+    <select id="getMessageStats" parameterType="map" resultType="map">
+        SELECT 
+            DATE(sent_at) as date,
+            COUNT(*) as message_count,
+            COUNT(DISTINCT sender_id) as active_users,
+            COUNT(CASE WHEN message_type = 'FILE' THEN 1 END) as file_count
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+        AND sent_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(sent_at)
+        ORDER BY date
+    </select>
+
+    <!-- 채팅방 검색 및 필터링 -->
+    <select id="searchRooms" parameterType="map" resultType="com.example.test.chat.ChatDTO">
+        SELECT DISTINCT r.*
+        FROM chat_rooms r
+        LEFT JOIN chat_room_tags t ON r.id = t.room_id
+        LEFT JOIN chat_participants p ON r.id = p.room_id
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND (
+                r.name LIKE CONCAT('%', #{keyword}, '%')
+                OR r.description LIKE CONCAT('%', #{keyword}, '%')
+                OR t.tag_name LIKE CONCAT('%', #{keyword}, '%')
+                OR u.name LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="type != null">
+            AND r.type = #{type}
+        </if>
+        <if test="startDate != null">
+            AND r.created_at >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND r.created_at &lt;= #{endDate}
+        </if>
+        <if test="userId != null">
+            AND EXISTS (
+                SELECT 1 FROM chat_participants p2 
+                WHERE p2.room_id = r.id 
+                AND p2.user_id = #{userId}
+            )
+        </if>
+        ORDER BY 
+        <choose>
+            <when test="sortBy == 'name'">r.name</when>
+            <when test="sortBy == 'created'">r.created_at</when>
+            <when test="sortBy == 'lastMessage'">r.last_message_at</when>
+            <when test="sortBy == 'participants'">(SELECT COUNT(*) FROM chat_participants WHERE room_id = r.id)</when>
+            <otherwise>r.last_message_at</otherwise>
+        </choose>
+        <choose>
+            <when test="sortOrder == 'asc'">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 채팅방 공유 -->
+    <insert id="createRoomShare">
+        INSERT INTO chat_room_shares (
+            room_id,
+            shared_by,
+            share_type,
+            share_token,
+            expires_at,
+            created_at
+        ) VALUES (
+            #{roomId},
+            #{sharedBy},
+            #{shareType},
+            #{shareToken},
+            #{expiresAt},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="getRoomShare" resultType="map">
+        SELECT *
+        FROM chat_room_shares
+        WHERE share_token = #{shareToken}
+        AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+    </select>
+
+    <delete id="deleteRoomShare">
+        DELETE FROM chat_room_shares
+        WHERE room_id = #{roomId}
+        AND shared_by = #{sharedBy}
+    </delete>
+
+    <!-- 채팅방 내보내기 -->
+    <select id="exportRoomData" resultType="map">
+        SELECT 
+            r.*,
+            GROUP_CONCAT(DISTINCT t.tag_name) as tags,
+            GROUP_CONCAT(DISTINCT p.user_id) as participant_ids,
+            GROUP_CONCAT(DISTINCT m.id) as message_ids,
+            GROUP_CONCAT(DISTINCT f.file_path) as file_paths
+        FROM chat_rooms r
+        LEFT JOIN chat_room_tags t ON r.id = t.room_id
+        LEFT JOIN chat_participants p ON r.id = p.room_id
+        LEFT JOIN chat_messages m ON r.id = m.room_id
+        LEFT JOIN chat_message_files f ON m.id = f.message_id
+        WHERE r.id = #{roomId}
+        GROUP BY r.id
+    </select>
+
+    <select id="exportRoomMessages" resultType="map">
+        SELECT 
+            m.*,
+            u.name as sender_name,
+            GROUP_CONCAT(f.file_path) as file_paths
+        FROM chat_messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN chat_message_files f ON m.id = f.message_id
+        WHERE m.room_id = #{roomId}
+        GROUP BY m.id
+        ORDER BY m.sent_at
+    </select>
+
+    <select id="exportRoomParticipants" resultType="map">
+        SELECT 
+            p.*,
+            u.name as user_name,
+            u.email as user_email
+        FROM chat_participants p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.room_id = #{roomId}
+    </select>
+
+    <!-- 메시지 분석 -->
+    <select id="analyzeMessagePatterns" resultType="map">
+        SELECT 
+            DATE(sent_at) as date,
+            HOUR(sent_at) as hour,
+            COUNT(*) as message_count,
+            COUNT(DISTINCT sender_id) as unique_senders,
+            AVG(LENGTH(message)) as avg_message_length,
+            COUNT(CASE WHEN message_type = 'FILE' THEN 1 END) as file_count
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+        AND sent_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(sent_at), HOUR(sent_at)
+        ORDER BY date, hour
+    </select>
+
+    <select id="getUserMessageStats" resultType="map">
+        SELECT 
+            u.id as user_id,
+            u.name as user_name,
+            COUNT(m.id) as total_messages,
+            COUNT(DISTINCT DATE(m.sent_at)) as active_days,
+            AVG(LENGTH(m.message)) as avg_message_length,
+            COUNT(CASE WHEN m.message_type = 'FILE' THEN 1 END) as file_count,
+            MAX(m.sent_at) as last_message_time
+        FROM users u
+        JOIN chat_messages m ON u.id = m.sender_id
+        WHERE m.room_id = #{roomId}
+        GROUP BY u.id, u.name
+        ORDER BY total_messages DESC
+    </select>
+
+    <!-- 활동 로그 -->
+    <insert id="logRoomActivity">
+        INSERT INTO chat_room_activity_logs (
+            room_id,
+            user_id,
+            activity_type,
+            activity_details,
+            created_at
+        ) VALUES (
+            #{roomId},
+            #{userId},
+            #{activityType},
+            #{activityDetails},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="getRoomActivityLogs" resultType="map">
+        SELECT 
+            l.*,
+            u.name as user_name
+        FROM chat_room_activity_logs l
+        JOIN users u ON l.user_id = u.id
+        WHERE l.room_id = #{roomId}
+        ORDER BY l.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 채팅방 설정 -->
+    <insert id="createRoomSettings">
+        INSERT INTO chat_room_settings (
+            room_id,
+            setting_key,
+            setting_value,
+            created_by,
+            created_at
+        ) VALUES (
+            #{roomId},
+            #{settingKey},
+            #{settingValue},
+            #{createdBy},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="updateRoomSettings">
+        UPDATE chat_room_settings
+        SET setting_value = #{settingValue},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE room_id = #{roomId}
+        AND setting_key = #{settingKey}
+    </update>
+
+    <select id="getRoomSettings" resultType="map">
+        SELECT setting_key, setting_value
+        FROM chat_room_settings
+        WHERE room_id = #{roomId}
+    </select>
+
+    <!-- 채팅방 템플릿 -->
+    <insert id="createRoomTemplate">
+        INSERT INTO chat_room_templates (
+            template_name,
+            template_description,
+            room_type,
+            default_settings,
+            created_by,
+            created_at
+        ) VALUES (
+            #{templateName},
+            #{templateDescription},
+            #{roomType},
+            #{defaultSettings},
+            #{createdBy},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="getRoomTemplates" resultType="map">
+        SELECT t.*, u.name as creator_name
+        FROM chat_room_templates t
+        JOIN users u ON t.created_by = u.id
+        WHERE t.room_type = #{roomType}
+        ORDER BY t.created_at DESC
+    </select>
+
+    <select id="getRoomTemplate" resultType="map">
+        SELECT t.*, u.name as creator_name
+        FROM chat_room_templates t
+        JOIN users u ON t.created_by = u.id
+        WHERE t.id = #{templateId}
+    </select>
+
+    <insert id="createRoomFromTemplate">
+        INSERT INTO chat_rooms (
+            name,
+            description,
+            type,
+            created_by,
+            created_at
+        )
+        SELECT 
+            #{roomName},
+            #{roomDescription},
+            t.room_type,
+            #{createdBy},
+            CURRENT_TIMESTAMP
+        FROM chat_room_templates t
+        WHERE t.id = #{templateId}
+    </insert>
+
+    <!-- 메시지 필터링 -->
+    <select id="filterMessages" resultType="com.example.test.chat.ChatMessageDTO">
+        SELECT m.*, u.name as sender_name
+        FROM chat_messages m
+        JOIN users u ON m.sender_id = u.id
+        WHERE m.room_id = #{roomId}
+        <if test="messageType != null">
+            AND m.message_type = #{messageType}
+        </if>
+        <if test="senderId != null">
+            AND m.sender_id = #{senderId}
+        </if>
+        <if test="startDate != null">
+            AND m.sent_at >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND m.sent_at &lt;= #{endDate}
+        </if>
+        <if test="hasFile != null">
+            AND EXISTS (
+                SELECT 1 FROM chat_message_files f 
+                WHERE f.message_id = m.id
+            )
+        </if>
+        <if test="isPinned != null">
+            AND m.is_pinned = #{isPinned}
+        </if>
+        ORDER BY m.sent_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 참여자 관리 -->
+    <update id="updateParticipantRole">
+        UPDATE chat_participants
+        SET role = #{role},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE room_id = #{roomId}
+        AND user_id = #{userId}
+    </update>
+
+    <select id="getParticipantRoles" resultType="map">
+        SELECT p.user_id, p.role, u.name as user_name
+        FROM chat_participants p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.room_id = #{roomId}
+    </select>
+
+    <select id="getParticipantsByRole" resultType="com.example.test.chat.ChatParticipantDTO">
+        SELECT p.*, u.name as user_name
+        FROM chat_participants p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.room_id = #{roomId}
+        AND p.role = #{role}
+    </select>
+
+    <!-- 알림 설정 -->
+    <update id="updateNotificationPreferences">
+        UPDATE chat_participants
+        SET 
+            email_notifications = #{emailNotifications},
+            push_notifications = #{pushNotifications},
+            desktop_notifications = #{desktopNotifications},
+            notification_sound = #{notificationSound},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE room_id = #{roomId}
+        AND user_id = #{userId}
+    </update>
+
+    <select id="getNotificationPreferences" resultType="map">
+        SELECT 
+            email_notifications,
+            push_notifications,
+            desktop_notifications,
+            notification_sound
+        FROM chat_participants
+        WHERE room_id = #{roomId}
+        AND user_id = #{userId}
+    </select>
+
+    <!-- 메시지 포맷팅 -->
+    <update id="updateMessageFormat">
+        UPDATE chat_messages
+        SET 
+            message_format = #{messageFormat},
+            formatted_message = #{formattedMessage},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{messageId}
+    </update>
+
+    <select id="getMessageFormats" resultType="map">
+        SELECT id, message_format, formatted_message
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+        AND message_format IS NOT NULL
+        ORDER BY sent_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="getMessageFormatStats" resultType="map">
+        SELECT 
+            message_format,
+            COUNT(*) as count
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+        AND message_format IS NOT NULL
+        GROUP BY message_format
+    </select>
+
+    <!-- 메시지 봇 -->
+    <insert id="createBotMessage">
+        INSERT INTO chat_messages (
+            room_id,
+            sender_id,
+            message,
+            message_type,
+            bot_type,
+            bot_response,
+            created_at
+        ) VALUES (
+            #{roomId},
+            #{senderId},
+            #{message},
+            'BOT',
+            #{botType},
+            #{botResponse},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="getBotMessages" resultType="com.example.test.chat.ChatMessageDTO">
+        SELECT m.*, u.name as sender_name
+        FROM chat_messages m
+        JOIN users u ON m.sender_id = u.id
+        WHERE m.room_id = #{roomId}
+        AND m.message_type = 'BOT'
+        AND m.bot_type = #{botType}
+        ORDER BY m.created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 메시지 번역 -->
+    <update id="updateMessageTranslation">
+        UPDATE chat_messages
+        SET 
+            translated_message = #{translatedMessage},
+            translation_language = #{translationLanguage},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{messageId}
+    </update>
+
+    <select id="getTranslatedMessages" resultType="map">
+        SELECT 
+            m.id,
+            m.message,
+            m.translated_message,
+            m.translation_language,
+            m.sent_at
+        FROM chat_messages m
+        WHERE m.room_id = #{roomId}
+        AND m.translated_message IS NOT NULL
+        ORDER BY m.sent_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 메시지 감정 분석 -->
+    <update id="updateMessageSentiment">
+        UPDATE chat_messages
+        SET 
+            sentiment_score = #{sentimentScore},
+            sentiment_type = #{sentimentType},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{messageId}
+    </update>
+
+    <select id="getMessageSentiments" resultType="map">
+        SELECT 
+            m.id,
+            m.message,
+            m.sentiment_score,
+            m.sentiment_type,
+            m.sent_at
+        FROM chat_messages m
+        WHERE m.room_id = #{roomId}
+        AND m.sentiment_score IS NOT NULL
+        ORDER BY m.sent_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="getSentimentStats" resultType="map">
+        SELECT 
+            sentiment_type,
+            COUNT(*) as count,
+            AVG(sentiment_score) as avg_score
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+        AND sentiment_type IS NOT NULL
+        GROUP BY sentiment_type
+    </select>
+
+    <!-- 메시지 요약 -->
+    <update id="updateMessageSummary">
+        UPDATE chat_messages
+        SET 
+            message_summary = #{messageSummary},
+            summary_type = #{summaryType},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{messageId}
+    </update>
+
+    <select id="getMessageSummaries" resultType="map">
+        SELECT 
+            m.id,
+            m.message,
+            m.message_summary,
+            m.summary_type,
+            m.sent_at
+        FROM chat_messages m
+        WHERE m.room_id = #{roomId}
+        AND m.message_summary IS NOT NULL
+        ORDER BY m.sent_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="getRoomSummary" resultType="map">
+        SELECT 
+            DATE(sent_at) as date,
+            COUNT(*) as message_count,
+            GROUP_CONCAT(DISTINCT message_summary) as daily_summary
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+        AND message_summary IS NOT NULL
+        AND sent_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(sent_at)
+        ORDER BY date
+    </select>
+
+    <!-- 공개 채팅방 목록 조회 -->
+    <select id="findByIsPrivateFalse" resultType="com.example.test.chat.ChatRoom">
+        SELECT *
+        FROM chat_rooms
+        WHERE is_private = false
+        AND is_deleted = false
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findPublicRooms" resultType="com.example.test.chat.ChatRoomDto">
+        SELECT * FROM chat_rooms WHERE is_main = false
+    </select>
+
+    <!-- 채팅방 이름으로 검색 -->
+    <select id="searchRoomsByName" parameterType="string" resultType="com.example.test.chat.ChatRoom">
+        SELECT *
+        FROM chat_rooms
+        WHERE name LIKE CONCAT('%', #{keyword}, '%')
+        AND is_deleted = false
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- ID로 채팅방 조회 -->
+    <select id="findById" parameterType="long" resultType="com.example.test.chat.ChatRoom">
+        SELECT *
+        FROM chat_rooms
+        WHERE id = #{id}
+        AND is_deleted = false
+    </select>
+
+    <!-- 채팅방 저장 -->
+    <insert id="save" parameterType="com.example.test.chat.ChatRoom" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_rooms (
+            name,
+            description,
+            max_participants,
+            is_private,
+            allow_invite,
+            save_message_history,
+            is_main,
+            project_id,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{name},
+            #{description},
+            #{maxParticipants},
+            #{isPrivate},
+            #{allowInvite},
+            #{saveMessageHistory},
+            #{isMain},
+            #{projectId},
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 채팅방 삭제 -->
+    <update id="delete" parameterType="com.example.test.chat.ChatRoom">
+        UPDATE chat_rooms
+        SET is_deleted = true,
+            deleted_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- ID로 채팅방 삭제 -->
+    <update id="deleteById" parameterType="long">
+        UPDATE chat_rooms
+        SET is_deleted = true,
+            deleted_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- 메시지 저장 -->
+    <insert id="saveChatMessage" parameterType="com.example.test.chat.ChatMessageDTO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_messages (
+            room_id,
+            sender_id,
+            message,
+            message_type,
+            sent_at
+        ) VALUES (
+            #{roomId},
+            #{senderId},
+            #{content},
+            #{messageType,typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+            #{sendTime}
+        )
+    </insert>
+
+    <!-- 메시지 목록 조회 -->
+    <select id="getChatMessages" parameterType="map" resultType="com.example.test.chat.ChatMessageDTO">
+        SELECT 
+            m.*,
+            u.name as sender_name
+        FROM chat_messages m
+        LEFT JOIN users u ON m.sender_id = u.id
+        WHERE m.room_id = #{roomId}
+        ORDER BY m.sent_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 메시지 읽음 처리 (chat_reads 테이블 사용) -->
+    <insert id="markMessageAsRead">
+        INSERT INTO chat_reads (message_id, user_id, read_at)
+        VALUES (#{messageId}, #{userId}, CURRENT_TIMESTAMP)
+        ON DUPLICATE KEY UPDATE read_at = CURRENT_TIMESTAMP
+    </insert>
+    
+    <!-- 특정 메시지의 읽음 상태 조회 -->
+    <select id="getMessageReadStatus" resultType="map">
+        SELECT 
+            m.id as message_id,
+            m.sender_id,
+            m.message,
+            m.sent_at,
+            COUNT(DISTINCT p.user_id) as total_participants,
+            COUNT(DISTINCT r.user_id) as read_count,
+            (COUNT(DISTINCT p.user_id) - COUNT(DISTINCT r.user_id)) as unread_count
+        FROM chat_messages m
+        JOIN chat_participants p ON m.room_id = p.room_id
+        LEFT JOIN chat_reads r ON m.id = r.message_id AND r.user_id = p.user_id
+        WHERE m.id = #{messageId}
+        AND p.user_id != m.sender_id  -- 발신자 제외
+        GROUP BY m.id, m.sender_id, m.message, m.sent_at
+    </select>
+    
+
+    
+    <!-- 채팅방의 모든 메시지에 읽음 표시 -->
+    <insert id="markAllMessagesAsRead">
+        INSERT INTO chat_reads (message_id, user_id, read_at)
+        SELECT m.id, #{userId}, CURRENT_TIMESTAMP
+        FROM chat_messages m
+        WHERE m.room_id = #{roomId}
+        AND m.sender_id != #{userId}  -- 본인이 보낸 메시지 제외
+        AND NOT EXISTS (
+            SELECT 1 FROM chat_reads r 
+            WHERE r.message_id = m.id 
+            AND r.user_id = #{userId}
+        )
+    </insert>
+    
+    <!-- 메시지별 읽음 사용자 목록 조회 -->
+    <select id="getMessageReaders" resultType="map">
+        SELECT 
+            r.user_id,
+            u.name as user_name,
+            r.read_at
+        FROM chat_reads r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.message_id = #{messageId}
+        ORDER BY r.read_at ASC
+    </select>
+    
+    <!-- 채팅방별 읽지 않은 메시지가 있는 사용자 목록 -->
+    <select id="getUsersWithUnreadMessages" resultType="map">
+        SELECT 
+            p.user_id,
+            u.name as user_name,
+            COUNT(m.id) as unread_count,
+            MIN(m.sent_at) as first_unread_at
+        FROM chat_participants p
+        JOIN users u ON p.user_id = u.id
+        JOIN chat_messages m ON m.room_id = p.room_id
+        WHERE p.room_id = #{roomId}
+        AND m.sender_id != p.user_id  -- 본인이 보낸 메시지 제외
+        AND NOT EXISTS (
+            SELECT 1 FROM chat_reads r 
+            WHERE r.message_id = m.id 
+            AND r.user_id = p.user_id
+        )
+        GROUP BY p.user_id, u.name
+        ORDER BY unread_count DESC
+    </select>
+
+</mapper> 

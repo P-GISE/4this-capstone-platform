@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.test.ai.AiHistoryRepository">
+    <insert id="insertHistory" parameterType="com.example.test.ai.AiHistory">
+        INSERT INTO ai_history (user_id, question, answer)
+        VALUES (#{userId}, #{question}, #{answer})
+    </insert>
+    <select id="findByUserId" parameterType="string" resultType="com.example.test.ai.AiHistory">
+        SELECT * FROM ai_history
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+    <select id="findRecentByUserId" resultType="com.example.test.ai.AiHistory">
+        SELECT * FROM ai_history
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM ai_history WHERE user_id = #{userId}
+    </select>
+    <select id="countByUserIdThisMonth" resultType="int">
+        SELECT COUNT(*) FROM ai_history
+        WHERE user_id = #{userId}
+          AND DATE_FORMAT(created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+    </select>
+    <select id="findHistoryByUserId" resultType="com.example.test.ai.AiHistoryDto">
+        SELECT
+            q.id AS question_id,
+            q.user_id,
+            q.context_type,
+            q.target_id,
+            q.question,
+            q.category,
+            q.is_answered,
+            q.answered_in_seconds,
+            q.created_at AS question_created_at,
+            a.id AS answer_id,
+            a.answer,
+            a.token_usage,
+            a.is_successful,
+            a.created_at AS answer_created_at
+        FROM ai_questions q
+        LEFT JOIN ai_answers a ON q.id = a.question_id
+        WHERE q.user_id = #{userId}
+        ORDER BY q.created_at DESC
+        LIMIT #{limit}
+    </select>
+    <select id="findHistoryByQuestionId" resultType="com.example.test.ai.AiHistoryDto">
+        SELECT *
+        FROM ai_history
+        WHERE question_id = #{questionId}
+        LIMIT 1
+    </select>
+    <delete id="deleteHistoryByQuestionId">
+        DELETE FROM ai_questions WHERE id = #{questionId}
+    </delete>
+</mapper> 

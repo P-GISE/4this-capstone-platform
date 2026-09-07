@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.chat.ChatMessageRepository">
+    <!-- 채팅방 메시지 목록 조회 (사용자 정보 포함, 오래된 순서) -->
+    <select id="findByRoomIdOrderByCreatedAtDesc" resultType="com.example.test.chat.ChatMessage">
+        SELECT 
+            cm.id,
+            cm.room_id as roomId,
+            cm.sender_id as userId,
+            cm.message as content,
+            cm.message_type as messageType,
+            NOW() as createdAt,
+            NOW() as updatedAt,
+            CASE 
+                WHEN sp.user_id IS NOT NULL THEN CONCAT(u.name, '/', sp.student_id)
+                WHEN pp.user_id IS NOT NULL THEN CONCAT(u.name, '/', pp.professor_id)
+                WHEN stp.user_id IS NOT NULL THEN CONCAT(u.name, '/', stp.staff_id)
+                WHEN ap.user_id IS NOT NULL THEN CONCAT(u.name, '/', ap.assistant_id)
+                ELSE u.name
+            END as senderName
+        FROM chat_messages cm
+        LEFT JOIN users u ON cm.sender_id = u.id
+        LEFT JOIN student_profiles sp ON u.id = sp.user_id
+        LEFT JOIN professor_profiles pp ON u.id = pp.user_id
+        LEFT JOIN staff_profiles stp ON u.id = stp.user_id
+        LEFT JOIN assistant_profiles ap ON u.id = ap.user_id
+        WHERE cm.room_id = #{roomId}
+        ORDER BY cm.id ASC
+    </select>
+
+    <!-- 채팅방 메시지 삭제 -->
+    <delete id="deleteByRoomId">
+        DELETE FROM chat_messages
+        WHERE room_id = #{roomId}
+    </delete>
+
+    <!-- 채팅방 메시지 저장 -->
+    <insert id="insert" parameterType="com.example.test.chat.ChatMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_messages (
+            room_id,
+            sender_id,
+            message,
+            message_type
+        ) VALUES (
+            #{roomId},
+            #{userId},
+            #{content},
+            #{messageType,typeHandler=org.apache.ibatis.type.EnumTypeHandler}
+        )
+    </insert>
+    
+    <!-- 메시지 ID로 조회 -->
+    <select id="findById" resultType="com.example.test.chat.ChatMessage">
+        SELECT 
+            id,
+            room_id as roomId,
+            sender_id as userId,
+            message as content,
+            message_type as messageType,
+            NOW() as createdAt,
+            NOW() as updatedAt
+        FROM chat_messages
+        WHERE id = #{id}
+    </select>
+    
+    <!-- 채팅방별 메시지 조회 -->
+    <select id="findByRoomId" resultType="com.example.test.chat.ChatMessage">
+        SELECT 
+            id,
+            room_id as roomId,
+            sender_id as userId,
+            message as content,
+            message_type as messageType,
+            NOW() as createdAt,
+            NOW() as updatedAt
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+        ORDER BY id ASC
+    </select>
+    
+    <!-- 채팅방 메시지 개수 조회 -->
+    <select id="countByRoomId" resultType="int">
+        SELECT COUNT(*)
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+    </select>
+    
+    <!-- 채팅방 최신 메시지 조회 -->
+    <select id="findFirstByRoomIdOrderByCreatedAtDesc" resultType="com.example.test.chat.ChatMessage">
+        SELECT 
+            id,
+            room_id as roomId,
+            sender_id as userId,
+            message as content,
+            message_type as messageType,
+            NOW() as createdAt,
+            NOW() as updatedAt
+        FROM chat_messages
+        WHERE room_id = #{roomId}
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+    
+    <!-- 채팅방별 메시지 검색 (내용 포함) -->
+    <select id="findByRoomIdAndContentContaining" resultType="com.example.test.chat.ChatMessage">
+        SELECT 
+            cm.id,
+            cm.room_id as roomId,
+            cm.sender_id as userId,
+            cm.message as content,
+            cm.message_type as messageType,
+            NOW() as createdAt,
+            NOW() as updatedAt,
+            CASE 
+                WHEN sp.user_id IS NOT NULL THEN CONCAT(u.name, '/', sp.student_id)
+                WHEN pp.user_id IS NOT NULL THEN CONCAT(u.name, '/', pp.professor_id)
+                WHEN stp.user_id IS NOT NULL THEN CONCAT(u.name, '/', stp.staff_id)
+                WHEN ap.user_id IS NOT NULL THEN CONCAT(u.name, '/', ap.assistant_id)
+                ELSE u.name
+            END as senderName
+        FROM chat_messages cm
+        LEFT JOIN users u ON cm.sender_id = u.id
+        LEFT JOIN student_profiles sp ON u.id = sp.user_id
+        LEFT JOIN professor_profiles pp ON u.id = pp.user_id
+        LEFT JOIN staff_profiles stp ON u.id = stp.user_id
+        LEFT JOIN assistant_profiles ap ON u.id = ap.user_id
+        WHERE cm.room_id = #{roomId}
+        AND cm.message LIKE CONCAT('%', #{content}, '%')
+        ORDER BY cm.id DESC
+    </select>
+</mapper> 

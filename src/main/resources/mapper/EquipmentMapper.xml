@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.equipment.EquipmentDao">
+
+    <!-- 1. equipment 테이블에서 장비 목록 조회 -->
+    <select id="selectEquipmentList" resultMap="EquipmentResultMap">
+        SELECT
+            id,
+            name,
+            asset_code,
+            category,
+            manufacturer,
+            purchase_date,
+            warranty_expiration,
+            location,
+            quantity,
+            available_quantity,
+            max_rental_quantity, 
+            is_rentable,
+            is_retired,
+            managed_by,
+            status,
+            description,
+            image_path,
+            created_at,
+            updated_at
+        FROM equipment
+    </select>
+
+    <!-- 검색 조건과 페이지네이션을 적용한 기자재 목록 조회 -->
+    <select id="selectEquipmentListWithPaging" parameterType="map" resultMap="EquipmentResultMap">
+        SELECT
+            id,
+            name,
+            asset_code,
+            category,
+            manufacturer,
+            purchase_date,
+            warranty_expiration,
+            location,
+            quantity,
+            available_quantity,
+            max_rental_quantity, 
+            is_rentable,
+            is_retired,
+            managed_by,
+            status,
+            description,
+            image_path,
+            created_at,
+            updated_at
+        FROM equipment
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    name LIKE CONCAT('%', #{keyword}, '%') 
+                    OR manufacturer LIKE CONCAT('%', #{keyword}, '%')
+                    OR asset_code LIKE CONCAT('%', #{keyword}, '%')
+                    OR description LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="location != null and location != ''">
+                AND location = #{location}
+            </if>
+            <!-- 퇴역된 장비는 기본적으로 제외 -->
+            AND (is_retired = false OR is_retired IS NULL)
+        </where>
+        
+        <!-- 정렬 조건 -->
+        <choose>
+            <when test="sortBy == 'created_at_asc'">
+                ORDER BY created_at ASC
+            </when>
+            <when test="sortBy == 'name_asc'">
+                ORDER BY name ASC
+            </when>
+            <when test="sortBy == 'category_asc'">
+                ORDER BY category ASC, name ASC
+            </when>
+            <when test="sortBy == 'available_desc'">
+                ORDER BY available_quantity DESC, name ASC
+            </when>
+            <otherwise>
+                ORDER BY created_at DESC
+            </otherwise>
+        </choose>
+        
+        <!-- 페이지네이션 -->
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 검색 조건에 맞는 기자재 총 개수 조회 -->
+    <select id="selectEquipmentCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM equipment
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    name LIKE CONCAT('%', #{keyword}, '%') 
+                    OR manufacturer LIKE CONCAT('%', #{keyword}, '%')
+                    OR asset_code LIKE CONCAT('%', #{keyword}, '%')
+                    OR description LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="location != null and location != ''">
+                AND location = #{location}
+            </if>
+            <!-- 퇴역된 장비는 기본적으로 제외 -->
+            AND (is_retired = false OR is_retired IS NULL)
+        </where>
+    </select>
+
+    <!-- 2. ID로 단건 조회 -->
+    <select id="selectEquipmentById"
+            parameterType="long"
+            resultMap="EquipmentResultMap">
+        SELECT
+            id,
+            name,
+            asset_code,
+            category,
+            manufacturer,
+            purchase_date,
+            warranty_expiration,
+            location,
+            quantity,
+            available_quantity,
+            max_rental_quantity, 
+            is_rentable,
+            is_retired,
+            managed_by,
+            status,
+            description,
+            image_path,
+            created_at,
+            updated_at
+        FROM equipment
+        WHERE id = #{id}
+    </select>
+
+    <!-- 3. 장비 등록 (자동 생성된 PK 반환) -->
+    <insert id="insertEquipment"
+            parameterType="com.example.test.equipment.EquipmentDto"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO equipment (
+            name, asset_code, category, manufacturer,
+            purchase_date, warranty_expiration, location,
+            quantity, available_quantity, max_rental_quantity,
+            is_rentable, is_retired, managed_by,
+            status, description, image_path
+        )
+        VALUES (
+            #{name}, #{assetCode}, #{category}, #{manufacturer},
+            #{purchaseDate}, #{warrantyExpiration}, #{location},
+            #{quantity}, #{availableQuantity}, #{maxRentalQuantity},
+            #{isRentable}, #{isRetired}, #{managedBy},
+            #{status}, #{description}, #{imagePath}
+        )
+    </insert>
+
+    <!-- 4. 장비 정보 수정 -->
+    <update id="updateEquipment"
+            parameterType="com.example.test.equipment.EquipmentDto">
+        UPDATE equipment
+        SET
+            name                  = #{name},
+            asset_code            = #{assetCode},
+            category              = #{category},
+            manufacturer          = #{manufacturer},
+            purchase_date         = #{purchaseDate},
+            warranty_expiration   = #{warrantyExpiration},
+            location              = #{location},
+            quantity              = #{quantity},
+            available_quantity    = #{availableQuantity},
+            max_rental_quantity   = #{maxRentalQuantity},
+            is_rentable           = #{isRentable},
+            is_retired            = #{isRetired},
+            managed_by            = #{managedBy},
+            status                = #{status},
+            description           = #{description},
+            image_path            = #{imagePath},
+            updated_at            = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 5. 장비 삭제 -->
+    <delete id="deleteEquipment"
+            parameterType="long">
+        DELETE FROM equipment WHERE id = #{id}
+    </delete>
+
+    <!-- 재고 차감(available_quantity 감소) -->
+    <update id="decrementAvailableQuantity" parameterType="map">
+        UPDATE equipment
+        SET available_quantity = available_quantity - #{amount}
+        WHERE id = #{equipmentId}
+        AND available_quantity >= #{amount}
+    </update>
+
+    <update id="incrementAvailableQuantity" parameterType="com.example.test.equipment.EquipmentDto">
+        UPDATE equipment
+        SET available_quantity = available_quantity + #{availableQuantity}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus"
+            parameterType="com.example.test.equipment.EquipmentDto">
+        UPDATE equipment
+        SET status = #{status},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}  
+    </update>
+
+    <!-- 전체 기자재 조회 -->
+    <select id="selectAllEquipment" resultType="com.example.test.equipment.EquipmentDto">
+        SELECT * FROM equipment
+    </select>
+
+    <!-- 7. 최신 등록된 기자재 목록 조회 -->
+    <select id="selectRecentEquipments" 
+            parameterType="int"
+            resultMap="EquipmentResultMap">
+        SELECT
+            id,
+            name,
+            asset_code,
+            category,
+            manufacturer,
+            purchase_date,
+            warranty_expiration,
+            location,
+            quantity,
+            available_quantity,
+            max_rental_quantity, 
+            is_rentable,
+            is_retired,
+            managed_by,
+            status,
+            description,
+            image_path,
+            created_at,
+            updated_at
+        FROM equipment
+        WHERE (is_retired = false OR is_retired IS NULL)
+        ORDER BY created_at DESC 
+        LIMIT #{limit}
+    </select>
+
+    <!-- 6. ResultMap: DB 컬럼 ↔ EquipmentDto 필드 매핑 -->
+    <resultMap id="EquipmentResultMap"
+               type="com.example.test.equipment.EquipmentDto">
+        <id     property="id"                  column="id"/>
+        <result property="name"                column="name"/>
+        <result property="assetCode"           column="asset_code"/>
+        <result property="category"            column="category"/>
+        <result property="manufacturer"        column="manufacturer"/>
+        <result property="purchaseDate"        column="purchase_date"/>
+        <result property="warrantyExpiration"  column="warranty_expiration"/>
+        <result property="location"            column="location"/>
+        <result property="quantity"            column="quantity"/>
+        <result property="availableQuantity"   column="available_quantity"/>
+        <result property="isRentable"          column="is_rentable"/>
+        <result property="isRetired"           column="is_retired"/>
+        <result property="managedBy"           column="managed_by"/>
+        <result property="status"              column="status"/>
+        <result property="description"         column="description"/>
+        <result property="imagePath"           column="image_path"/>
+        <result property="createdAt"           column="created_at"/>
+        <result property="updatedAt"           column="updated_at"/>
+        <result property="maxRentalQuantity" column="max_rental_quantity"/>
+    </resultMap>
+
+</mapper>

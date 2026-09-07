@@ -1,0 +1,38 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+
+cache:
+  paths:
+    - .m2/repository/
+
+build-war:
+  stage: build
+  image: maven:3.9.6-eclipse-temurin-8  # 올바른 이미지명
+  script:
+    - mvn clean install -DskipTests
+  artifacts:
+    paths:
+      - target/ROOT.war
+    expire_in: 1 hour
+  tags:
+    - war
+
+deploy-to-tomcat:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache docker-cli
+  script:
+    - cp target/ROOT.war /data1/docker/tomcat8.5-capstone-4this/webapps/
+    - docker restart tomcat8.5-capstone-4this
+    - echo "✅ Capstone 프로젝트 배포 완료!"
+  only:
+    - main
+  dependencies:
+    - build-war
+  tags:
+    - tomcat

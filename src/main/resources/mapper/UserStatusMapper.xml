@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.chat.UserStatusRepository">
+    
+    <resultMap id="UserStatusResultMap" type="com.example.test.chat.UserStatus">
+        <result property="userId" column="user_id"/>
+        <result property="status" column="status"/>
+        <result property="statusMessage" column="status_message"/>
+        <result property="lastSeen" column="last_seen"/>
+        <result property="lastHeartbeat" column="last_heartbeat"/>
+        <result property="statusUpdatedAt" column="status_updated_at"/>
+    </resultMap>
+
+    <!-- 사용자 상태 조회 -->
+    <select id="findByUserId" resultMap="UserStatusResultMap">
+        SELECT user_id, status, status_message, last_seen, last_heartbeat, status_updated_at
+        FROM user_status
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 사용자 상태 저장/업데이트 -->
+    <insert id="upsert" parameterType="com.example.test.chat.UserStatus">
+        INSERT INTO user_status (user_id, status, status_message, last_seen, last_heartbeat, status_updated_at)
+        VALUES (#{userId}, #{status}, #{statusMessage}, #{lastSeen}, #{lastHeartbeat}, #{statusUpdatedAt})
+        ON DUPLICATE KEY UPDATE
+            status = VALUES(status),
+            status_message = VALUES(status_message),
+            last_seen = VALUES(last_seen),
+            last_heartbeat = VALUES(last_heartbeat),
+            status_updated_at = VALUES(status_updated_at)
+    </insert>
+
+    <!-- 하트비트 업데이트 -->
+    <update id="updateHeartbeat">
+        INSERT INTO user_status (user_id, status, last_heartbeat, status_updated_at)
+        VALUES (#{userId}, 'ONLINE', #{heartbeatTime}, #{heartbeatTime})
+        ON DUPLICATE KEY UPDATE
+            last_heartbeat = VALUES(last_heartbeat),
+            status = 'ONLINE',
+            status_updated_at = VALUES(status_updated_at)
+    </update>
+
+    <!-- 상태 업데이트 -->
+    <update id="updateStatus">
+        INSERT INTO user_status (user_id, status, status_message, status_updated_at)
+        VALUES (#{userId}, #{status}, #{statusMessage}, CURRENT_TIMESTAMP)
+        ON DUPLICATE KEY UPDATE
+            status = VALUES(status),
+            status_message = VALUES(status_message),
+            status_updated_at = VALUES(status_updated_at)
+    </update>
+
+    <!-- 마지막 접속 시간 업데이트 -->
+    <update id="updateLastSeen">
+        INSERT INTO user_status (user_id, last_seen, status_updated_at)
+        VALUES (#{userId}, #{lastSeen}, #{lastSeen})
+        ON DUPLICATE KEY UPDATE
+            last_seen = VALUES(last_seen),
+            status_updated_at = VALUES(status_updated_at)
+    </update>
+
+    <!-- 오프라인 상태로 변경 (하트비트가 오래된 사용자들) -->
+    <update id="markOfflineByHeartbeat">
+        UPDATE user_status
+        SET status = 'OFFLINE', status_updated_at = CURRENT_TIMESTAMP
+        WHERE last_heartbeat &lt; DATE_SUB(CURRENT_TIMESTAMP, INTERVAL #{timeoutMinutes} MINUTE)
+        AND status != 'OFFLINE'
+    </update>
+
+    <!-- 채팅방 참여자들의 상태 조회 -->
+    <select id="findByUserIds" resultMap="UserStatusResultMap">
+        SELECT user_id, status, status_message, last_seen, last_heartbeat, status_updated_at
+        FROM user_status
+        WHERE user_id IN
+        <foreach item="userId" collection="userIds" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </select>
+
+    <!-- 온라인 사용자 목록 조회 -->
+    <select id="findOnlineUsers" resultMap="UserStatusResultMap">
+        SELECT user_id, status, status_message, last_seen, last_heartbeat, status_updated_at
+        FROM user_status
+        WHERE status IN ('ONLINE', 'AWAY', 'BUSY')
+        AND last_heartbeat > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)
+        ORDER BY last_heartbeat DESC
+    </select>
+
+    <!-- 모든 사용자 상태 초기화 -->
+    <update id="resetAllStatus">
+        UPDATE user_status
+        SET status = 'OFFLINE', status_updated_at = CURRENT_TIMESTAMP
+    </update>
+
+</mapper> 

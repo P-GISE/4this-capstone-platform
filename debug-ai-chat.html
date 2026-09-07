@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 채팅 모달 테스트</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        
+        .test-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .console-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin-top: 20px;
+            height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* AI 채팅 모달 스타일 */
+        .ai-chat-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .ai-chat-modal.show {
+            opacity: 1;
+        }
+        
+        .ai-chat-modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 600px;
+            max-width: 90vw;
+            height: 500px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .ai-chat-modal.show .ai-chat-modal-content {
+            transform: scale(1);
+        }
+        
+        .ai-chat-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ai-chat-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+        }
+        
+        .ai-chat-body {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI 채팅 모달 테스트</h1>
+    
+    <button class="test-btn" onclick="testBasicAlert()">
+        <i class="fas fa-test"></i> 기본 테스트
+    </button>
+    
+    <button class="test-btn" onclick="testFindElement()">
+        <i class="fas fa-search"></i> 요소 찾기 테스트
+    </button>
+    
+    <button class="test-btn" onclick="testOpenModal()">
+        <i class="fas fa-robot"></i> AI 모달 열기 테스트
+    </button>
+    
+    <button class="test-btn" id="aiChatBtn">
+        <i class="fas fa-robot"></i> AI 상담 (실제 버튼)
+    </button>
+    
+    <div class="console-output" id="console"></div>
+    
+    <!-- AI 채팅 모달 -->
+    <div id="aiChatModal" class="ai-chat-modal">
+        <div class="ai-chat-modal-content">
+            <div class="ai-chat-header">
+                <h3><i class="fas fa-robot"></i> AI 프로젝트 상담 (테스트)</h3>
+                <button class="ai-chat-close" onclick="closeAiChatModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="ai-chat-body">
+                <h2>🎉 AI 채팅 모달이 정상적으로 열렸습니다!</h2>
+                <p>이것은 테스트 모달입니다.</p>
+                <button class="test-btn" onclick="closeAiChatModal()">
+                    모달 닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let consoleDiv = document.getElementById('console');
+        
+        function log(message) {
+            console.log(message);
+            consoleDiv.innerHTML += `> ${message}\n`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        function testBasicAlert() {
+            log('기본 테스트: alert 실행');
+            alert('JavaScript가 정상적으로 작동합니다!');
+            log('기본 테스트: 완료');
+        }
+        
+        function testFindElement() {
+            log('요소 찾기 테스트 시작');
+            const aiChatBtn = document.getElementById('aiChatBtn');
+            if (aiChatBtn) {
+                log('✅ aiChatBtn 요소를 찾았습니다');
+                log(`버튼 텍스트: ${aiChatBtn.textContent.trim()}`);
+            } else {
+                log('❌ aiChatBtn 요소를 찾을 수 없습니다');
+            }
+            
+            const modal = document.getElementById('aiChatModal');
+            if (modal) {
+                log('✅ aiChatModal 요소를 찾았습니다');
+                log(`모달 display: ${modal.style.display || 'default'}`);
+            } else {
+                log('❌ aiChatModal 요소를 찾을 수 없습니다');
+            }
+        }
+        
+        function testOpenModal() {
+            log('모달 열기 테스트 시작');
+            try {
+                openAiChatModal();
+                log('✅ openAiChatModal() 함수 실행 완료');
+            } catch (error) {
+                log(`❌ openAiChatModal() 함수 실행 중 오류: ${error.message}`);
+            }
+        }
+        
+        // AI 채팅 모달 열기
+        function openAiChatModal() {
+            log('openAiChatModal() 함수 실행');
+            const modal = document.getElementById('aiChatModal');
+            if (!modal) {
+                log('❌ 모달 요소를 찾을 수 없습니다');
+                return;
+            }
+            
+            log('모달 표시 중...');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show');
+                log('✅ 모달이 성공적으로 열렸습니다');
+            }, 10);
+        }
+        
+        // AI 채팅 모달 닫기
+        function closeAiChatModal() {
+            log('closeAiChatModal() 함수 실행');
+            const modal = document.getElementById('aiChatModal');
+            if (!modal) {
+                log('❌ 모달 요소를 찾을 수 없습니다');
+                return;
+            }
+            
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                log('✅ 모달이 성공적으로 닫혔습니다');
+            }, 300);
+        }
+        
+        // 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM 로드 완료');
+            const aiChatBtn = document.getElementById('aiChatBtn');
+            if (aiChatBtn) {
+                log('AI 채팅 버튼에 이벤트 리스너 등록');
+                aiChatBtn.addEventListener('click', function() {
+                    log('AI 채팅 버튼 클릭됨');
+                    openAiChatModal();
+                });
+            } else {
+                log('❌ AI 채팅 버튼을 찾을 수 없어 이벤트 리스너 등록 실패');
+            }
+        });
+        
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const modal = document.getElementById('aiChatModal');
+            if (event.target === modal) {
+                closeAiChatModal();
+            }
+        }
+        
+        log('스크립트 로드 완료');
+    </script>
+</body>
+</html> 

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.test.inquiry.mapper.InquiryMapper">
+
+    <!-- 수정된 문의사항 조회 쿼리 - status 필터와 sort 정렬 추가 -->
+    <select id="getPagedList" resultType="com.example.test.inquiry.InquiryDto">
+        SELECT i.*, u.name AS writerName
+        FROM inquiries i
+        JOIN users u ON i.user_id = u.id
+        WHERE i.is_deleted = FALSE
+          <if test="search != null and search != ''">
+            AND i.title LIKE CONCAT('%', #{search}, '%')
+          </if>
+          <if test="status != null and status != ''">
+            AND i.status = #{status}
+          </if>
+        ORDER BY 
+          i.is_urgent DESC,
+          <choose>
+            <when test="sort == 'oldest'">
+              i.created_at ASC
+            </when>
+            <otherwise>
+              i.created_at DESC
+            </otherwise>
+          </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 수정된 카운트 쿼리 - status 필터 추가 -->
+    <select id="count" resultType="int">
+        SELECT COUNT(*)
+        FROM inquiries
+        WHERE is_deleted = FALSE
+          <if test="search != null and search != ''">
+            AND title LIKE CONCAT('%', #{search}, '%')
+          </if>
+          <if test="status != null and status != ''">
+            AND status = #{status}
+          </if>
+    </select>
+
+    <select id="selectById" resultType="com.example.test.inquiry.InquiryDto">
+        SELECT i.*, u.name AS writerName
+        FROM inquiries i
+        JOIN users u ON i.user_id = u.id
+        WHERE i.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.example.test.inquiry.InquiryDto" 
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inquiries (
+            user_id, title, content, category, context_type,
+            has_attachment, is_urgent, is_reviewed, status,
+            is_deleted, created_at, updated_at
+        ) VALUES (
+            #{userId}, #{title}, #{content}, #{category}, #{contextType},
+            #{hasAttachment}, #{urgent}, #{reviewed}, #{status},
+            #{deleted}, NOW(), NOW()
+        )
+    </insert>
+
+    <update id="update" parameterType="com.example.test.inquiry.InquiryDto">
+        UPDATE inquiries
+        SET title = #{title},
+            content = #{content},
+            category = #{category},
+            context_type = #{contextType},
+            target_id = #{targetId},
+            has_attachment = #{hasAttachment},
+            is_urgent = #{urgent},
+            is_reviewed = #{reviewed},
+            status = #{status},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM inquiries WHERE id = #{id}
+    </delete>
+
+    <!-- 첨부파일 관련 쿼리 -->
+    <insert id="insertAttachment" parameterType="com.example.test.inquiry.InquiryAttachmentDto">
+        INSERT INTO inquiry_attachments (
+            <trim suffixOverrides=",">
+                <if test="inquiryId != null">inquiry_id,</if>
+                <if test="inquiryAnswerId != null">inquiry_answer_id,</if>
+                file_name, original_file_name, file_path, 
+                file_type, file_size, description, is_downloadable, 
+                download_count, is_deleted, uploaded_at
+            </trim>
+        ) VALUES (
+            <trim suffixOverrides=",">
+                <if test="inquiryId != null">#{inquiryId},</if>
+                <if test="inquiryAnswerId != null">#{inquiryAnswerId},</if>
+                #{fileName}, #{originalFileName}, #{filePath},
+                #{fileType}, #{fileSize}, #{description}, #{downloadable},
+                #{downloadCount}, #{deleted}, NOW()
+            </trim>
+        )
+    </insert>
+
+    <select id="getAttachmentsByInquiryId" resultType="com.example.test.inquiry.InquiryAttachmentDto">
+        SELECT *
+        FROM inquiry_attachments
+        WHERE inquiry_id = #{inquiryId} AND is_deleted = FALSE
+        ORDER BY uploaded_at ASC
+    </select>
+
+    <select id="getAttachmentById" resultType="com.example.test.inquiry.InquiryAttachmentDto">
+        SELECT *
+        FROM inquiry_attachments
+        WHERE id = #{attachmentId} AND is_deleted = FALSE
+    </select>
+
+    <update id="incrementDownloadCount">
+        UPDATE inquiry_attachments 
+        SET download_count = download_count + 1
+        WHERE id = #{attachmentId}
+    </update>
+
+    <update id="deleteAttachment">
+        DELETE FROM inquiry_attachments WHERE id = #{attachmentId}
+    </update>
+
+    <!-- 답변 관련 쿼리 수정 -->
+    <insert id="insertAnswer" parameterType="com.example.test.inquiry.InquiryAnswerDto" 
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inquiry_answers (
+            inquiry_id, admin_id, answer, has_attachment, is_edited, is_read_by_user, created_at, updated_at
+        ) VALUES (
+            #{inquiryId}, #{adminId}, #{answer}, #{hasAttachment}, #{edited}, #{readByUser}, NOW(), NOW()
+        )
+    </insert>
+
+    <select id="getAnswersByInquiryId" resultType="com.example.test.inquiry.InquiryAnswerDto">
+        SELECT a.id, a.inquiry_id as inquiryId, a.admin_id as adminId, a.updated_by as updatedBy,
+               a.answer, a.has_attachment as hasAttachment, 
+               CASE WHEN a.is_edited = 1 THEN true ELSE false END as edited,
+               CASE WHEN a.is_read_by_user = 1 THEN true ELSE false END as readByUser,
+               a.created_at as createdAt, a.updated_at as updatedAt,
+               u1.name AS adminName, u1.role AS adminRole,
+               u2.name AS updatedByName
+        FROM inquiry_answers a
+        JOIN users u1 ON a.admin_id = u1.id
+        LEFT JOIN users u2 ON a.updated_by = u2.id
+        WHERE a.inquiry_id = #{inquiryId}
+        ORDER BY a.created_at ASC
+    </select>
+
+    <select id="getAnswerById" resultType="com.example.test.inquiry.InquiryAnswerDto">
+        SELECT a.id, a.inquiry_id as inquiryId, a.admin_id as adminId, a.updated_by as updatedBy,
+               a.answer, a.has_attachment as hasAttachment, 
+               CASE WHEN a.is_edited = 1 THEN true ELSE false END as edited,
+               CASE WHEN a.is_read_by_user = 1 THEN true ELSE false END as readByUser,
+               a.created_at as createdAt, a.updated_at as updatedAt,
+               u1.name AS adminName, u1.role AS adminRole,
+               u2.name AS updatedByName
+        FROM inquiry_answers a
+        JOIN users u1 ON a.admin_id = u1.id
+        LEFT JOIN users u2 ON a.updated_by = u2.id
+        WHERE a.id = #{answerId}
+    </select>
+
+    <update id="updateAnswer" parameterType="com.example.test.inquiry.InquiryAnswerDto">
+        UPDATE inquiry_answers
+        SET answer = #{answer},
+            has_attachment = #{hasAttachment},
+            updated_by = #{updatedBy},
+            is_edited = TRUE,
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteAnswer">
+        DELETE FROM inquiry_answers WHERE id = #{answerId}
+    </delete>
+
+    <!-- 사용자가 답변을 읽음으로 표시 -->
+    <update id="markAnswerAsRead">
+        UPDATE inquiry_answers 
+        SET is_read_by_user = TRUE 
+        WHERE inquiry_id = #{inquiryId}
+    </update>
+
+    <!-- 답변 첨부파일 조회 -->
+    <select id="getAttachmentsByAnswerId" resultType="com.example.test.inquiry.InquiryAttachmentDto">
+        SELECT *
+        FROM inquiry_attachments
+        WHERE inquiry_answer_id = #{answerId} AND is_deleted = FALSE
+        ORDER BY uploaded_at ASC
+    </select>
+
+    <!-- 문의사항 상태 업데이트 -->
+    <update id="updateInquiryStatus">
+        UPDATE inquiries 
+        SET status = #{status}, 
+            answered_at = CASE WHEN #{status} = 'ANSWERED' THEN NOW() ELSE answered_at END,
+            updated_at = NOW()
+        WHERE id = #{inquiryId}
+    </update>
+
+    <select id="getMyInquiries" resultType="com.example.test.inquiry.InquiryDto">
+        SELECT 
+            i.id,
+            i.user_id as userId,
+            i.title,
+            i.content,
+            i.category,
+            i.context_type as contextType,
+            i.target_id as targetId,
+            i.has_attachment as hasAttachment,
+            i.is_urgent as urgent,
+            i.is_reviewed as reviewed,
+            i.answered_at as answeredAt,
+            i.status,
+            i.is_deleted as deleted,
+            i.created_at as createdAt,
+            i.updated_at as updatedAt,
+            u.username as writerName
+        FROM inquiries i
+        LEFT JOIN users u ON i.user_id = u.id
+        WHERE i.is_deleted = 0 
+        AND i.user_id = #{userId}
+        <choose>
+            <when test="sort == 'oldest'">
+                ORDER BY i.created_at ASC
+            </when>
+            <otherwise>
+                ORDER BY i.created_at DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 특정 사용자의 문의 총 개수 조회 (마이페이지 활동 요약용) -->
+    <select id="countTotalInquiriesByUser" parameterType="Long" resultType="int">
+        SELECT COUNT(*) 
+        FROM inquiries 
+        WHERE user_id = #{userId} 
+        AND is_deleted = FALSE
+    </select>
+</mapper>

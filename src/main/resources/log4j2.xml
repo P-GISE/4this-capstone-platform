@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration status="warn" packages="org.apache.logging.log4j.core">
+    <appenders>
+        <!-- 콘솔(Appender) 설정 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <!-- 로그 메시지의 출력 형식을 정의 -->
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+    </appenders>
+
+    <loggers>
+        <!-- HikariCP 연결 풀 로그 -->
+        <Logger name="com.zaxxer.hikari" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <root level="INFO">
+            <appender-ref ref="Console" />
+        </root>
+    </loggers>
+</configuration>
