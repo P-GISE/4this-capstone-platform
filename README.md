@@ -15,6 +15,33 @@
 | 화면 방식 | JSP/JSTL 서버 렌더링 |
 | DB 접근 | MyBatis mapper, Spring JDBC, 일부 JPA entity |
 
+## 소스 검토 기준
+
+이 README는 `src/main/java`, `src/main/resources`, `src/main/webapp/WEB-INF/views`, `src/main/resources/mapper`, `pom.xml`을 직접 검토해 다시 작성했습니다. 실제 `.properties`에는 민감값을 넣지 않는 구조로 정리했고, 문서에는 환경변수 이름과 설정 위치만 남겼습니다. 테스트 디렉터리는 현재 저장소에서 확인되지 않아 실행 검증보다는 빌드/구조 검토 중심으로 문서화했습니다.
+
+검토 결과 이 프로젝트는 단일 게시판이 아니라 기자재 대여, 예약, 수리, 공지/문의/자료실, AI 질의, 프로젝트 협업, 실시간 채팅, 관리자 감사 로그를 한 애플리케이션에 묶은 Spring MVC 기반 학과 장비 관리 플랫폼입니다.
+
+## 소스 기준 기능 지도
+
+| 기능 영역 | 확인한 주요 파일 | 실제로 구현된 내용 |
+| --- | --- | --- |
+| 인증/사용자 | `AuthController.java`, `MypageController.java`, `SecurityConfig.java` | 회원가입, 로그인/로그아웃, 이메일 인증, 비밀번호 찾기, 마이페이지, 권한별 접근 제어 |
+| 관리자 | `AdminController.java`, `AdminLogController.java`, `UserLogController.java` | 회원 상태 관리, 권한 부여, 크레딧 지급, 활동/실패 로그, 감사 로그 통계 |
+| 기자재 | `EquipmentController.java`, `EquipmentRentalController.java`, `EquipmentReservationController.java`, `EquipmentRepairController.java` | 기자재 등록/수정/삭제, 일반 대여, 특별 대여, 예약, 수리 요청과 승인/반려 |
+| 커뮤니티 문서 | `NoticeController.java`, `InquiryController.java`, `ArchiveController.java` | 공지사항, 문의, 자료실 게시글과 파일 업로드/다운로드 |
+| AI 기능 | `AiController.java`, `AnthropicService.java`, `AiAnswerService.java` | 챗봇 질의, 기술 답변, 프로젝트 조언, 보고서 생성, AI 사용 크레딧 기록 |
+| 프로젝트 협업 | `ProjectController.java`, `ChatController.java`, `ChatWebSocketController.java` | 프로젝트 생성, 태스크/멤버 관리, 초대, 채팅방, 메시지, 파일 공유, 알림 |
+| 화면 | `src/main/webapp/WEB-INF/views/**/*.jsp` | `auth`, `equipment`, `project`, `chat`, `ai`, `admin`, `notice`, `inquiry`, `archive` 등 JSP 화면 |
+| DB 매퍼 | `src/main/resources/mapper/*.xml` | 사용자, 기자재, 대여, 예약, 문의, 공지, AI, 채팅, 프로젝트, 로그 관련 SQL 매핑 |
+
+## 처음 검토할 때 볼 순서
+
+1. `pom.xml`에서 Java/Spring/MyBatis/JSP 기반의 전통적인 MVC 구성을 확인합니다.
+2. `src/main/webapp/WEB-INF/views`를 보면 실제 제공되는 화면 범위가 보입니다.
+3. `src/main/java/.../controller`를 보면 사용자가 접근하는 URL과 업무 흐름이 드러납니다.
+4. `src/main/resources/mapper`를 보면 DB 테이블 기준으로 어떤 기능이 연결되어 있는지 확인할 수 있습니다.
+5. `src/main/resources/config/anthropic.properties`와 `application.properties`는 실제 키가 아니라 환경변수 기반 설정으로 유지해야 합니다.
+
 ## 사용 시나리오
 
 1. 학생이 회원가입과 이메일 인증을 진행합니다.
@@ -101,7 +128,7 @@ http://localhost:8080
 
 | 파일 | 역할 |
 | --- | --- |
-| `src/main/resources/application.properties` | Anthropic API key placeholder와 기본 애플리케이션 설정 |
+| `src/main/resources/application.properties` | Anthropic API 환경변수 참조와 기본 애플리케이션 설정 |
 | `src/main/resources/config/anthropic.properties` | AI 기능용 Anthropic 설정 |
 | `src/main/resources/mybatis-config.xml` | MyBatis 공통 설정 |
 | `src/main/resources/mapper/*.xml` | 도메인별 SQL mapper |
