@@ -42,17 +42,24 @@ class PollTest(unittest.TestCase):
 
     def test_main_change_during_download_cannot_deploy(self):
         run = {"head_sha": SHA, "event": "push", "conclusion": "success", "id": 1}
-        with patch.object(poll, "gh", side_effect=[{"sha": SHA}, {"workflow_runs": [run]}, {"sha": "c" * 40}]), patch.object(poll.subprocess, "run"), patch.object(poll.subprocess, "Popen") as deploy:
+        with patch.object(poll, "gh", side_effect=[{"sha": SHA}, {"workflow_runs": [run]}, {"status": "ahead", "files": []}, {"sha": "c" * 40}]), patch.object(poll.subprocess, "run"), patch.object(poll.subprocess, "Popen") as deploy:
             poll.main()
             deploy.assert_not_called()
 
     def test_verified_same_main_downloads_named_image_then_deploys(self):
         run = {"head_sha": SHA, "event": "push", "conclusion": "success", "id": 1}
         process = Mock(); process.wait.return_value = 0
-        with patch.object(poll, "gh", side_effect=[{"sha": SHA}, {"workflow_runs": [run]}, {"sha": SHA}]), patch.object(poll.subprocess, "run") as download, patch.object(poll.subprocess, "Popen", return_value=process) as deploy:
+        with patch.object(poll, "gh", side_effect=[{"sha": SHA}, {"workflow_runs": [run]}, {"status": "ahead", "files": [{"filename": "src/main/java/Example.java"}]}, {"sha": SHA}]), patch.object(poll.subprocess, "run") as download, patch.object(poll.subprocess, "Popen", return_value=process) as deploy:
             poll.main()
             self.assertIn("fourthis-" + SHA, download.call_args_list[1].args[0])
             self.assertEqual(deploy.call_args.args[0][1], SHA)
+
+    def test_deployment_or_workflow_changes_require_review(self):
+        run = {"head_sha": SHA, "event": "push", "conclusion": "success", "id": 1}
+        for name in [".github/workflows/ci.yml", "scripts/deploy-app.sh", "database/schema.sql", "Dockerfile"]:
+            with self.subTest(name=name), patch.object(poll, "gh", side_effect=[{"sha": SHA}, {"workflow_runs": [run]}, {"status": "ahead", "files": [{"filename": name}]}]), patch.object(poll.subprocess, "Popen") as deploy:
+                poll.main()
+                deploy.assert_not_called()
 
     def test_stop_gives_shell_rollback_time(self):
         poll.deploy_process = Mock()

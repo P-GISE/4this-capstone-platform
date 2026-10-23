@@ -42,9 +42,13 @@ CI는 새 `fourthis_schema_test` MariaDB에서 합성 데이터로 검증하고,
 
 서버의 root 소유 trusted copy로 poller·app deploy 스크립트를 설치해야 한다. artifact에 담긴 배포 코드를 실행하지 않는다. `.env`·state는 root 0600, 배포기 디렉터리는 root 0750, systemd unit/timer는 root 0644다. 최초 `deployed.sha`는 실제 실행 이미지 commit과 일치시킨다. timer 설치·활성화 및 통합 경로 검증은 아직 수행하지 않았다.
 
+일반 앱 소스 변경은 자동 배포 대상이다. `.github/`, `scripts/`, `docker/`, `database/`, Dockerfile, Compose, pom.xml, Docker ignore 변경과 비교 범위가 300파일 이상인 경우는 `deployment_definition_review_required`로 멈춘다. 검토 후 새 trusted 배포 정의 및 실제 이미지·state를 함께 갱신하는 수동 배포가 필요하다. 이 경계를 자동 우회하는 승인 파일은 제공하지 않는다.
+
 ## 롤백
 
 앱 교체 실패 시 `.env.previous`와 이전 이미지로 앱만 재기동한다. 성공 건강 상태를 확인하고 이전 `deployed.sha`를 복원한다. 실패 commit은 `failed.sha`로 자동 재시도를 차단한다. 롤백 실패는 `recovery-required`를 남겨 이후 자동 배포를 거절한다. 수동 복구 시 실제 image/env/state를 확인하기 전 차단 파일을 지우지 않는다.
+
+최초 변경 전에 `deploy-in-progress`를 fsync해 남기고 정상 배포 또는 검증된 롤백에서만 제거한다. 복구 중 TERM/INT는 무시하며 env·state 복원은 독립적으로 시도한다. 이미지 load 전에 단일 `fourthis:<sha>` 태그·config digest·OCI revision·비root 실행·고정 명령·압축 및 해제 크기를 검사한다.
 
 최초 설치 실패 시 새 앱·새 DB 컨테이너를 중지할 수 있지만 새 볼륨도 자동 삭제하지 않는다. 삭제는 데이터가 필요 없는 새 합성 환경인지 별도 확인해야 한다. 기존 다른 서비스는 롤백 대상이 아니다.
 

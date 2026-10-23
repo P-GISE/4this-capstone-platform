@@ -76,9 +76,9 @@ users에는 username/email unique를 두며 프로필·AI credit·presence는 us
 
 - **확인됨:** SchemaDatabaseTest는 H2 MySQL-mode의 새 메모리 DB에50테이블을 만들고 초기 users0, 합성 사용자/프로젝트/멤버/장비/예약/공지 쓰기와 관계 조회·예약 WAITING 기본값을 확인한다.
 - **확인됨:** MapperDatabaseTest의 Chat PK 회귀는 실제 XML을 MyBatis로 로드하여 합성 새 DB에서 수정/검색/삭제 SQL을 실행한다.
-- **미확인:** 동일 클래스의 MariaDB 회귀는 로컬 TEST_DB_URL 부재로 명시skip이다. 이를 통과나 실제MariaDB 배포 완료로 셈하지 않는다.
+- **확인됨:** CI run 39996165339의 MariaDB 11.4 새 빈 DB에서 50테이블 초기화와 SELECT 452회(226개 statement × 필터 2형태)가 실행되었다. Maven 전체19개/실패0/오류0/skip0이며 그중 스키마 담당3개도 모두 통과했다. 로컬은 TEST_DB_URL 부재로 MariaDB1개가 skip이고, CI 검증은 운영 DB 적용을 뜻하지 않는다.
 - **제안/구현됨:** CI TEST_DB_URL은 jdbc:mariadb://127.0.0.1:<port>/fourthis_schema_test 또는 localhost만 허용하고 query parameter도 받지 않는다. TEST_DB_USERNAME/TEST_DB_PASSWORD는 CI 합성값만 전달한다. 기존 테이블이1개라도 있으면 초기화 전에 실패한다. schema 적용 뒤 모든 mapper SELECT를 빈필터/합성필터 두 형태로 실제 실행한다(200회 초과 필수). 업무 DB·학교 서버 URL은 코드에서 거절된다.
 - **미확인:** SELECT 준비/실행은 화면 전체의 업무 정확성, 권한, 모든 동적 sort 조합·쓰기 경로를 증명하지 않는다. Tomcat/JSP/HTTP와 운영 사후 검증은 다른 담당자가 별도로 수행한다.
 - **미확인:** Iron Laws는 이 worktree가 허용 폴더 밖이라 schema/test 검사를 거절했다. 도구 검사를 완료했다고 주장하거나 경계를 우회하지 않았다.
 
-로컬 호출: Maven -q -Dtest=SchemaDatabaseTest,MapperDatabaseTest test. 결과3 run/0failure/0error/1skip. 증거 .omo/evidence/schema/mapper-local.txt 및 두 *DatabaseTest.summary.txt. schema 파일 부재 RED는 red.txt, H2 초기 green은 h2.txt다. CI 실제MariaDB 결과를 받은 뒤 이 상태를 갱신한다.
+로컬 호출: Maven -q -Dtest=SchemaDatabaseTest,MapperDatabaseTest test. 결과3 run/0failure/0error/1skip. 증거 .omo/evidence/schema/mapper-local.txt 및 두 *DatabaseTest.summary.txt. schema 파일 부재 RED는 red.txt, H2 초기 green은 h2.txt다. CI 실제 MariaDB 근거는 .omo/evidence/schema/mariadb-ci.safe.json이다. 이 run의 전체 결론은 이후 이미지 빌드 단계 오류 때문에 failure이며, HTTP·이미지·운영 완료로 확대하지 않는다.

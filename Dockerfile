@@ -2,6 +2,7 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /src
 COPY pom.xml ./
 COPY src ./src
+COPY database ./database
 RUN mvn -B -ntp clean package
 
 FROM tomcat:9.0-jdk21-temurin-noble
