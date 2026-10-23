@@ -61,6 +61,8 @@ jobs:
           cp -r database release/database
           printf '%s\n' '${{ github.sha }}' > release/commit.txt
           (cd release && sha256sum image.tar.gz compose.yaml database/schema.sql commit.txt > SHA256SUMS)
+      - name: Verify actual release archive contract
+        run: python3 scripts/verify-release.py release "${{ github.sha }}"
       - uses: actions/upload-artifact@v4
         with:
           name: fourthis-${{ github.sha }}
