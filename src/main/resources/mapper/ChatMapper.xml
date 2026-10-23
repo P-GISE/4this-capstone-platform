@@ -119,7 +119,7 @@
     <update id="updateChatRoom" parameterType="com.example.test.chat.ChatDTO">
         UPDATE chat_rooms
         SET name = #{roomName}
-        WHERE room_id = #{roomId}
+        WHERE id = #{roomId}
     </update>
 
     <!-- 채팅방 삭제 -->
@@ -127,14 +127,14 @@
         UPDATE chat_rooms
         SET is_deleted = true,
             deleted_at = CURRENT_TIMESTAMP
-        WHERE room_id = #{roomId}
+        WHERE id = #{roomId}
     </update>
 
     <!-- 채팅방 검색 -->
     <select id="searchChatRooms" parameterType="map" resultType="com.example.test.chat.ChatDTO">
         SELECT r.*, 
-               (SELECT COUNT(*) FROM chat_messages m WHERE m.room_id = r.room_id) as message_count,
-               (SELECT MAX(created_at) FROM chat_messages m WHERE m.room_id = r.room_id) as last_message_time
+               (SELECT COUNT(*) FROM chat_messages m WHERE m.room_id = r.id) as message_count,
+               (SELECT MAX(created_at) FROM chat_messages m WHERE m.room_id = r.id) as last_message_time
         FROM chat_rooms r
         WHERE r.project_id = #{projectId}
         AND r.is_deleted = false

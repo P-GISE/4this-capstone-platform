@@ -1,0 +1,83 @@
+name: CI
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: fourthis_schema_test
+          MARIADB_USER: schema_test
+          MARIADB_PASSWORD: synthetic-ci-only
+          MARIADB_ROOT_PASSWORD: synthetic-root-ci-only
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd='healthcheck.sh --connect --innodb_initialized'
+          --health-interval=5s --health-timeout=5s --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Verify fresh MariaDB and application boundaries
+        env:
+          TEST_DB_URL: jdbc:mariadb://127.0.0.1:3306/fourthis_schema_test
+          TEST_DB_USERNAME: schema_test
+          TEST_DB_PASSWORD: synthetic-ci-only
+          EMAIL_ENABLED: 'false'
+          AI_ENABLED: 'false'
+        run: mvn -B -ntp clean verify
+      - name: Verify deployment selection and cancellation
+        run: python3 -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Build reviewed source image
+        run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -t fourthis:${{ github.sha }} .
+      - name: Start isolated runtime and verify HTTP boundaries
+        env:
+          APP_IMAGE: fourthis:${{ github.sha }}
+          APP_ORIGIN: http://localhost:3401
+          DB_PASSWORD: synthetic-runtime-ci-only
+          DB_ROOT_PASSWORD: synthetic-runtime-root-ci-only
+        run: |
+          docker compose up -d --wait --wait-timeout 180
+          python3 scripts/runtime-smoke.py
+      - name: Package immutable tested image
+        run: |
+          mkdir -p release
+          docker save fourthis:${{ github.sha }} | gzip > release/image.tar.gz
+          cp compose.yaml release/compose.yaml
+          cp -r database release/database
+          printf '%s\n' '${{ github.sha }}' > release/commit.txt
+          (cd release && sha256sum image.tar.gz compose.yaml database/schema.sql commit.txt > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fourthis-${{ github.sha }}
+          path: release/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-${{ github.sha }}
+          path: |
+            target/surefire-reports/
+            runtime-smoke.json
+      - name: Stop isolated test runtime
+        if: always()
+        env:
+          APP_IMAGE: fourthis:${{ github.sha }}
+          APP_ORIGIN: http://localhost:3401
+          DB_PASSWORD: synthetic-runtime-ci-only
+          DB_ROOT_PASSWORD: synthetic-runtime-root-ci-only
+        run: docker compose down -v

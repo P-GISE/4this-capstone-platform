@@ -1,0 +1,8 @@
+.git
+.omo
+.env
+.env.*
+target
+uploads
+*.log
+*.md

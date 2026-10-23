@@ -10,10 +10,11 @@
            http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
            http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
+    <context:property-placeholder />
     <mvc:annotation-driven />
 
     <mvc:resources mapping="/resources/**" location="/resources/" />
-    <mvc:resources mapping="/uploads/**" location="file:///C:/uploads/" />
+    <mvc:resources mapping="/uploads/**" location="file:${UPLOAD_DIR:/app/uploads}/" />
 
     <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
         <property name="prefix" value="/WEB-INF/views/" />

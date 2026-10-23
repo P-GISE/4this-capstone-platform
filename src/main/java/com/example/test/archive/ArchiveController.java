@@ -42,6 +42,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Controller
 @RequestMapping("/archive")
 public class ArchiveController {
+    private ArchiveDto requireArchiveOwner(Long id, HttpSession session) {
+        AuthDto actor = (AuthDto) session.getAttribute("loginUser");
+        ArchiveDto archive = archiveService.getArchiveById(id);
+        if (archive == null || actor == null || !("ADMIN".equals(actor.getRole())
+                || java.util.Objects.equals(actor.getId(), archive.getSubmittedBy()))) {
+            throw new com.example.test.config.AccessDeniedException();
+        }
+        return archive;
+    }
+
+    private void requireArchiveProject(Long projectId, HttpSession session) {
+        AuthDto actor = (AuthDto) session.getAttribute("loginUser");
+        if (actor == null || (projectId != null && !"ADMIN".equals(actor.getRole())
+                && projectService.getProjectsForUser(actor.getId()).stream()
+                    .noneMatch(project -> java.util.Objects.equals(projectId, project.getId())))) {
+            throw new com.example.test.config.AccessDeniedException();
+        }
+    }
+
 
     @Autowired
     private ArchiveService archiveService;
@@ -168,10 +187,11 @@ public class ArchiveController {
                              @RequestParam(value = "attachFile", required = false) List<MultipartFile> files,
                              HttpSession session,
                              RedirectAttributes redirectAttrs) {
-        Long loginUserId = (Long) session.getAttribute("userId");
+        requireArchiveProject(archiveDto.getProjectId(), session);
+        Long loginUserId = ((AuthDto) session.getAttribute("loginUser")).getId();
         AuthDto loginUser = (AuthDto) session.getAttribute("loginUser");
 
-        if (archiveDto.getSubmittedBy() == null && loginUserId != null) {
+        if (loginUserId != null) {
             archiveDto.setSubmittedBy(loginUserId);
         }
 
@@ -243,7 +263,7 @@ public class ArchiveController {
             }
         }
 
-        String uploadDir = "/your/upload/folder/path/archives";
+        String uploadDir = com.example.test.config.RuntimePaths.uploads("archives");
         archiveService.saveArchiveWithFiles(archiveDto, files, uploadDir);
         
         redirectAttrs.addFlashAttribute("successMessage", "아카이브가 등록되었습니다.");
@@ -318,7 +338,7 @@ public class ArchiveController {
             return "redirect:/auth/login";
         }
         
-        ArchiveDto archive = archiveService.getArchiveById(id);
+        ArchiveDto archive = requireArchiveOwner(id, session);
         
         // 로그인한 사용자가 속한 프로젝트만 가져오기
         List<ProjectDto> projectList = projectService.getProjectsForUser(loginUser.getId());
@@ -334,8 +354,19 @@ public class ArchiveController {
     public String updateArchive(@ModelAttribute ArchiveDto archiveDto,
                                @RequestParam(value = "attachFile", required = false) List<MultipartFile> files,
                                @RequestParam(value = "deleteFileIds", required = false) List<Long> deleteFileIds,
-                               RedirectAttributes redirectAttrs) {
-        
+                               RedirectAttributes redirectAttrs, HttpSession session) {
+        ArchiveDto existing = requireArchiveOwner(archiveDto.getId(), session);
+        requireArchiveProject(archiveDto.getProjectId(), session);
+        archiveDto.setSubmittedByName(existing.getSubmittedByName());
+        if (deleteFileIds != null) {
+            for (Long fileId : deleteFileIds) {
+                ArchiveFileDto file = archiveService.getFileById(fileId);
+                if (file == null || !java.util.Objects.equals(existing.getId(), file.getArchiveId())) {
+                    throw new com.example.test.config.AccessDeniedException();
+                }
+            }
+        }
+
         // 디버깅 로그 추가
         System.out.println("=== 아카이브 수정 요청 ===");
         System.out.println("아카이브 ID: " + archiveDto.getId());
@@ -355,7 +386,8 @@ public class ArchiveController {
     }
 
     @PostMapping("/delete/{id}")
-    public String deleteArchive(@PathVariable("id") Long id, RedirectAttributes redirectAttrs) {
+    public String deleteArchive(@PathVariable("id") Long id, RedirectAttributes redirectAttrs, HttpSession session) {
+        requireArchiveOwner(id, session);
         archiveService.deleteArchive(id);
         redirectAttrs.addFlashAttribute("successMessage", "아카이브가 삭제되었습니다.");
         return "redirect:/archive/list";
@@ -519,8 +551,10 @@ public class ArchiveController {
                 System.out.println("파일 다운로드 카운트 증가: 파일ID=" + fileId);
             }
             
-            String uploadPath = "/your/upload/folder/path/archives";
-            Path filePath = Paths.get(uploadPath).resolve(fileName);
+            String uploadPath = com.example.test.config.RuntimePaths.uploads("archives");
+            Path basePath = Paths.get(uploadPath).toAbsolutePath().normalize();
+            Path filePath = basePath.resolve(fileName).normalize();
+            if (!filePath.startsWith(basePath)) return ResponseEntity.status(403).build();
             Resource resource = new UrlResource(filePath.toUri());
 
             if (!resource.exists() || !resource.isReadable()) {

@@ -519,7 +519,7 @@ public class ProjectServiceImpl implements ProjectService {
         try {
             // 절대 경로 기준으로 업로드 디렉토리 생성
             String baseDir = System.getProperty("user.dir"); // 현재 프로젝트 디렉토리
-            String uploadDir = baseDir + "/uploads/reports/" + projectId;
+            String uploadDir = com.example.test.config.RuntimePaths.uploads("reports/" + projectId);
             Path uploadPath = Paths.get(uploadDir);
             Files.createDirectories(uploadPath);
             

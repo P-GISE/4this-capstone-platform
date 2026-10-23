@@ -32,6 +32,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public RegistrationResult register(AuthDto dto) {
+        if (dto != null && !"STUDENT".equals(dto.getRole())) {
+            return RegistrationResult.FAILURE;
+        }
+        email.requireConfigured();
         // 입력값 검증
         if (dto == null) {
             return RegistrationResult.FAILURE;
@@ -202,6 +206,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean sendTemporaryPassword(String emailAddr) {
+        email.requireConfigured();
         AuthDto user = authMapper.findByEmail(emailAddr);
         if (user == null) return false;
 
@@ -220,7 +225,6 @@ public class AuthServiceImpl implements AuthService {
             
         email.sendNaverEmail(subject, content, emailAddr);
 
-        logger.info("임시 비밀번호가 생성되었습니다: {}", temp);
         return true;
     }
 
@@ -458,6 +462,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean sendEmailVerification(String emailAddr) {
+        email.requireConfigured();
         try {
             // 토큰 생성
             String token = UUID.randomUUID().toString();
@@ -466,7 +471,7 @@ public class AuthServiceImpl implements AuthService {
 
             // 이메일 발송
             String subject = "[AI 캡스톤디자인] 이메일 인증";
-            String verificationUrl = "https://capstone-4this.ibetter.kr/auth/verify-email?token=" + token;
+            String verificationUrl = System.getenv("APP_ORIGIN") + "/auth/verify-email?token=" + token;
             
             String content = String.format(
                 "<div style=\"max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;\">" +

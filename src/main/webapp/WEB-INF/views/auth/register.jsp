@@ -574,9 +574,7 @@
                         <label class="form-label">사용자 유형</label>
                         <div class="radio-group">
                             <label><input type="radio" name="role" value="STUDENT" checked> 학생</label>
-                            <label><input type="radio" name="role" value="PROFESSOR"> 교수</label>
-                            <label><input type="radio" name="role" value="ASSISTANT"> 조교</label>
-                            <label><input type="radio" name="role" value="STAFF"> 교직원</label>
+                            <span>교수·조교·교직원 권한은 관리자에게 요청하세요.</span>
                         </div>
                     </div>
 

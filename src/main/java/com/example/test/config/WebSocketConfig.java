@@ -29,7 +29,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("https://capstone-4this.ibetter.kr")
+                .setAllowedOrigins(System.getenv().getOrDefault("APP_ORIGIN", "http://localhost:3401"))
                 .withSockJS();
     }
 

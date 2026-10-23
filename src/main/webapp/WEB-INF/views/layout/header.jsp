@@ -739,13 +739,13 @@ document.addEventListener('click', function(e) {
 
 // 로그아웃 처리
 function handleLogout(event) {
-  fetch('/chat/user/offline', {
-    method: 'POST'
-  }).catch(error => {
-    console.log('오프라인 상태 설정 실패:', error);
-  });
-  
-  return true;
+  event.preventDefault();
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/auth/logout';
+  document.body.appendChild(form);
+  form.submit();
+  return false;
 }
 
 // 알림 시스템 초기화

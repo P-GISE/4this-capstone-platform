@@ -16,6 +16,17 @@ public class AuthInterceptor implements HandlerInterceptor {
                              @NonNull Object handler) throws Exception {
         
         String requestURI = request.getRequestURI();
+        if (requestURI.equals("/health") || requestURI.startsWith("/resources/")) {
+            return true;
+        }
+        if (!"GET".equals(request.getMethod()) && requestURI.startsWith("/ai/")
+                && !com.example.test.ai.AnthropicApiConfig.isEnabled()) {
+            response.setStatus(503);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"error\":\"AI 기능이 설정되지 않았습니다. 관리자에게 문의하세요.\"}");
+            return false;
+        }
+
         
         // 인증 없이 접근 가능한 경로들
         if (requestURI.startsWith("/auth/login") || 
