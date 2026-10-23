@@ -83,8 +83,17 @@ assert sql("SELECT COUNT(*) FROM project_members") == "2", "Project membership d
 probe("/projects/1", 200, authenticated=True)
 probe("/equipment/list", 200, authenticated=True)
 probe("/notice/list", 200, authenticated=True)
+for service in ("app", "db"):
+    container = subprocess.check_output(["docker", "compose", "ps", "-q", service], text=True).strip()
+    log_driver = subprocess.check_output(["docker", "inspect", "--format", "{{.HostConfig.LogConfig.Type}}", container], text=True).strip()
+    assert log_driver == "none", "Runtime Docker log persistence must be disabled"
+logging_config = subprocess.run(["docker", "compose", "exec", "-T", "app", "sh", "-c",
+    "! grep -q 'AccessLogValve' /usr/local/tomcat/conf/server.xml && ! grep -q 'FileHandler' /usr/local/tomcat/conf/logging.properties"],
+    capture_output=True, timeout=15)
+assert logging_config.returncode == 0, "Tomcat file/access log configuration must be disabled"
 summary = {"passed": len(results), "body_saved": False, "cookies_saved": False,
            "bootstrap": True, "session_roundtrip_manual_cookie_header": True,
-           "secure_cookie_attributes": True, "project_count": 1, "member_count": 2}
+           "secure_cookie_attributes": True, "project_count": 1, "member_count": 2,
+           "docker_log_persistence_disabled": True, "tomcat_file_access_logs_disabled": True}
 Path("runtime-smoke-summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary))

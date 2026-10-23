@@ -11,14 +11,23 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 public final class AdminBootstrap {
     private AdminBootstrap() { }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        try {
+            bootstrap();
+        } catch (Exception failure) {
+            System.err.println("administrator_created=false reason=bootstrap_failed");
+            System.exit(1);
+        }
+    }
+
+    private static void bootstrap() throws Exception {
         JsonNode input = new ObjectMapper().readTree(System.in);
         String username = input.path("username").asText();
         String password = input.path("password").asText();
         String email = input.path("email").asText();
         if (!"fresh-fourthis".equals(input.path("confirmation").asText())
                 || !username.matches("[A-Za-z0-9_-]{3,64}") || password.length() < 20
-                || !email.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")) {
+                || !isValidEmail(email)) {
             throw new IllegalArgumentException("Invalid bootstrap input");
         }
         String url = System.getenv("DB_URL");
@@ -58,5 +67,9 @@ public final class AdminBootstrap {
             }
         }
         System.out.println("administrator_created=true");
+    }
+
+    static boolean isValidEmail(String email) {
+        return email.matches("[^\\s@\\\\]+@[^\\s@\\\\]+\\.[^\\s@\\\\]+");
     }
 }
