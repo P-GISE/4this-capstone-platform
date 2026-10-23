@@ -12,6 +12,7 @@ public interface AuthService {
         DUPLICATE_USERNAME,    // 아이디 중복
         DUPLICATE_EMAIL,       // 이메일 중복
         DUPLICATE_PHONE,       // 전화번호 중복
+        EMAIL_DELIVERY_FAILED, // 등록되었지만 인증 메일 전송 실패
         FAILURE                // 기타 실패
     }
 

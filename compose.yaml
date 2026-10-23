@@ -11,7 +11,13 @@ services:
       DB_USERNAME: fourthis
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       UPLOAD_DIR: /app/uploads
-      EMAIL_ENABLED: "false"
+      EMAIL_ENABLED: ${EMAIL_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       AI_ENABLED: "false"
     volumes:
       - uploads:/app/uploads
