@@ -23,7 +23,7 @@ jobs:
           MARIADB_ROOT_PASSWORD: synthetic-root-ci-only
         ports: ['3306:3306']
         options: >-
-          --health-cmd='healthcheck.sh --connect --innodb_initialized'
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
           --health-interval=5s --health-timeout=5s --health-retries=12
     steps:
       - uses: actions/checkout@v4
@@ -80,4 +80,4 @@ jobs:
           APP_ORIGIN: http://localhost:3401
           DB_PASSWORD: synthetic-runtime-ci-only
           DB_ROOT_PASSWORD: synthetic-runtime-root-ci-only
-        run: docker compose down -v
+        run: if test -f compose.yaml; then docker compose down -v; fi
