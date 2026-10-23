@@ -54,6 +54,8 @@ probe("/auth/login", 403, "POST", body=b"")
 probe("/admin/users", 403)
 probe("/ai/test-questions", 404)
 probe("/ai/update-question-user-id", 404)
+probe("/auth/register", 503, "POST", "http://localhost:3401", b"role=STUDENT")
+probe("/ai/ask-json", 503, "POST", "http://localhost:3401", b"")
 assert sql("SELECT COUNT(*) FROM users") == "0", "Runtime must begin with an empty user table"
 password = secrets.token_urlsafe(24)
 payload = json.dumps({"confirmation": "fresh-fourthis", "username": "ci-admin",
