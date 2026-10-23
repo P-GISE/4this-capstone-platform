@@ -172,6 +172,12 @@ public class AuthController {
             model.addAttribute("userEmail", authDto.getEmail());
             return "auth/register-success";
         }
+        if (result == RegistrationResult.EMAIL_DELIVERY_FAILED) {
+            model.addAttribute("emailVerificationRequired", true);
+            model.addAttribute("userEmail", authDto.getEmail());
+            model.addAttribute("loginError", "계정은 등록되었지만 인증 메일을 보내지 못했습니다. 잠시 후 인증 이메일을 재발송해 주세요.");
+            return "auth/login";
+        }
         model.addAttribute("errorCode", result.name());
         return "auth/register";
     }
@@ -221,7 +227,9 @@ public class AuthController {
         if (sent) {
             model.addAttribute("message", "인증 이메일을 재발송했습니다. 이메일을 확인해주세요.");
         } else {
-            model.addAttribute("error", "이메일 재발송에 실패했습니다.");
+            model.addAttribute("loginError", "인증 이메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
+            model.addAttribute("emailVerificationRequired", true);
+            model.addAttribute("userEmail", email);
         }
         return "auth/login";
     }

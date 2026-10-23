@@ -459,7 +459,7 @@
                         ${loginError}
                         <c:if test="${emailVerificationRequired}">
                             <form action="/auth/resend-verification" method="post" style="margin-top: 10px; display: inline;">
-                                <input type="hidden" name="email" value="${userEmail}">
+                                <input type="hidden" name="email" value="<c:out value='${userEmail}'/>">
                                 <button type="submit" style="background: none; border: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; font-size: 0.9rem;">
                                     인증 이메일 재발송
                                 </button>

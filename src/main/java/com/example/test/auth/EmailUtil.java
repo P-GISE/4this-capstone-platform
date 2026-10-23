@@ -33,10 +33,10 @@ public class EmailUtil {
         try {
             // Naver SMTP 로 전송
             emailClient.sendNaverEmail(subject, text, to);
-            logger.info("이메일 전송 성공: to={}, subject={}", to, subject);
+            logger.info("email_sent");
             return true;
         } catch (Exception e) {
-            logger.error("이메일 전송 실패: to={}, subject={}, error={}", to, subject, e.getMessage(), e);
+            logger.warn("email_failed");
             return false;
         }
     }

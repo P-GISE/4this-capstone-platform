@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.example.test.auth.mapper.AuthMapper;
 import com.example.test.libs.Email;
@@ -29,6 +31,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private Email email;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Override
     public RegistrationResult register(AuthDto dto) {
@@ -124,7 +129,7 @@ public class AuthServiceImpl implements AuthService {
             }
 
             // 회원가입 성공 후 이메일 인증 발송
-            sendEmailVerification(dto.getEmail());
+            if (!sendEmailVerification(dto.getEmail())) return RegistrationResult.EMAIL_DELIVERY_FAILED;
             
             return RegistrationResult.SUCCESS;
 
@@ -207,25 +212,22 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public boolean sendTemporaryPassword(String emailAddr) {
         email.requireConfigured();
-        AuthDto user = authMapper.findByEmail(emailAddr);
-        if (user == null) return false;
-
-        String temp = generateTempPassword();
-        String encoded = passwordEncoder.encode(temp);
-
-        if (authMapper.updatePasswordByEmail(encoded, emailAddr) <= 0) {
-            return false;
-        }
-
-        String subject = "[AI캡스톤] 임시 비밀번호 안내";
-        String content = String.format(
-            "안녕하세요, AI 캡스톤디자인 관리시스템입니다.\n\n" +
-            "임시 비밀번호는 <strong>%s</strong> 입니다.\n" +
-            "로그인 후 반드시 비밀번호를 변경해주세요.", temp);
-            
-        email.sendNaverEmail(subject, content, emailAddr);
-
-        return true;
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            AuthDto user = authMapper.findByEmail(emailAddr);
+            if (user == null) return false;
+            String temp = generateTempPassword();
+            String encoded = passwordEncoder.encode(temp);
+            if (authMapper.updatePasswordByEmail(encoded, emailAddr) != 1) {
+                status.setRollbackOnly();
+                return false;
+            }
+            String subject = "[AI캡스톤] 임시 비밀번호 안내";
+            String content = String.format(
+                    "임시 비밀번호는 <strong>%s</strong> 입니다. 로그인 후 반드시 비밀번호를 변경해주세요.", temp);
+            // SMTP failure must escape this transaction so the existing password remains valid.
+            email.sendNaverEmail(subject, content, emailAddr);
+            return true;
+        });
     }
 
     private String generateTempPassword() {
@@ -463,9 +465,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public boolean sendEmailVerification(String emailAddr) {
         email.requireConfigured();
+        String token = UUID.randomUUID().toString();
         try {
             // 토큰 생성
-            String token = UUID.randomUUID().toString();
             emailVerificationTokens.put(token, emailAddr);
             tokenCreationTime.put(token, System.currentTimeMillis());
 
@@ -497,10 +499,12 @@ public class AuthServiceImpl implements AuthService {
                 "</div>", verificationUrl, verificationUrl);
 
             email.sendNaverEmail(subject, content, emailAddr);
-            logger.info("이메일 인증 발송 완료: {}", emailAddr);
+            logger.info("verification_email_sent");
             return true;
         } catch (Exception e) {
-            logger.error("이메일 인증 발송 실패: " + e.getMessage(), e);
+            emailVerificationTokens.remove(token);
+            tokenCreationTime.remove(token);
+            logger.warn("verification_email_failed");
             return false;
         }
     }
@@ -530,13 +534,13 @@ public class AuthServiceImpl implements AuthService {
                     // 사용된 토큰 삭제
                     emailVerificationTokens.remove(token);
                     tokenCreationTime.remove(token);
-                    logger.info("이메일 인증 완료: {}", emailAddr);
+                    logger.info("email_verified");
                     return true;
                 }
             }
             return false;
         } catch (Exception e) {
-            logger.error("이메일 인증 처리 실패: " + e.getMessage(), e);
+            logger.warn("email_verification_failed");
             return false;
         }
     }
