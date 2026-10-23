@@ -137,7 +137,7 @@ public class NoticeController {
         noticeDto.setWriterId(loginUser.getId());
         noticeDto.setWriterName(loginUser.getName());
 
-        String uploadDir = "/your/upload/folder/path";
+        String uploadDir = com.example.test.config.RuntimePaths.uploads("notices");
         noticeService.insertWithFiles(noticeDto, files, uploadDir);
         redirectAttrs.addFlashAttribute("successMessage", "공지사항이 등록되었습니다.");
         return "redirect:/notice/list";
@@ -293,7 +293,7 @@ public class NoticeController {
     public ResponseEntity<Resource> downloadFile(@RequestParam("file") String fileName,
                                                 @RequestParam("original") String originalFileName) {
         try {
-            String uploadPath = "/your/upload/folder/path";
+            String uploadPath = com.example.test.config.RuntimePaths.uploads("notices");
             Path filePath = Paths.get(uploadPath).resolve(fileName);
             Resource resource = new UrlResource(filePath.toUri());
 

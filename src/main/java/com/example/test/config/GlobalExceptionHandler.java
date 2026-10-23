@@ -14,6 +14,21 @@ import javax.servlet.http.HttpServletRequest;
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ModelAndView handleDenied(AccessDeniedException ex) {
+        ModelAndView view = new ModelAndView("error/500");
+        view.setStatus(org.springframework.http.HttpStatus.FORBIDDEN);
+        view.addObject("errorMessage", ex.getMessage());
+        return view;
+    }
+    @ExceptionHandler(ExternalServiceUnavailableException.class)
+    public ModelAndView handleUnavailable(ExternalServiceUnavailableException ex) {
+        ModelAndView view = new ModelAndView("error/500");
+        view.setStatus(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
+        view.addObject("errorMessage", ex.getMessage());
+        return view;
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
@@ -28,6 +43,7 @@ public class GlobalExceptionHandler {
         ModelAndView mav = new ModelAndView();
         mav.addObject("errorMessage", "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         mav.setViewName("error/500");
+        mav.setStatus(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         
         return mav;
     }
@@ -39,6 +55,7 @@ public class GlobalExceptionHandler {
         ModelAndView mav = new ModelAndView();
         mav.addObject("errorMessage", "시스템 오류가 발생했습니다.");
         mav.setViewName("error/500");
+        mav.setStatus(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         
         return mav;
     }
@@ -51,6 +68,7 @@ public class GlobalExceptionHandler {
         mav.addObject("errorMessage", "데이터 처리 중 오류가 발생했습니다.");
         mav.addObject("errorDetails", "필수 데이터가 누락되었습니다.");
         mav.setViewName("error/500");
+        mav.setStatus(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
 
         return mav;
     }

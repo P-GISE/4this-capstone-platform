@@ -130,7 +130,7 @@ public class ArchiveServiceImpl implements ArchiveService {
             // 1. 아카이브 정보 수정
             logger.info("아카이브 수정 시작: ID={}, 제목={}", archiveDto.getId(), archiveDto.getTitle());
             archiveMapper.updateArchive(archiveDto);
-            String uploadDir = "/your/upload/folder/path/archives";
+            String uploadDir = com.example.test.config.RuntimePaths.uploads("archives");
         
             // 2. 삭제할 파일들 처리
             if (deleteFileIds != null && !deleteFileIds.isEmpty()) {

@@ -15,16 +15,29 @@ public class AuthInterceptor implements HandlerInterceptor {
                              @NonNull HttpServletResponse response, 
                              @NonNull Object handler) throws Exception {
         
-        String requestURI = request.getRequestURI();
+        String requestURI = request.getServletPath();
+        if (requestURI.isEmpty()) requestURI = request.getRequestURI().substring(request.getContextPath().length());
+        requestURI = requestURI.replaceAll(";[^/]*", "");
+        if (requestURI.equals("/health") || requestURI.startsWith("/resources/")) {
+            return true;
+        }
+        if (!"GET".equals(request.getMethod()) && requestURI.startsWith("/ai/")
+                && !com.example.test.ai.AnthropicApiConfig.isEnabled()) {
+            response.setStatus(503);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"error\":\"AI 기능이 설정되지 않았습니다. 관리자에게 문의하세요.\"}");
+            return false;
+        }
+
         
         // 인증 없이 접근 가능한 경로들
-        if (requestURI.startsWith("/auth/login") || 
-            requestURI.startsWith("/auth/register") || 
-            requestURI.startsWith("/auth/find-password") ||
-            requestURI.startsWith("/auth/terms") ||           // 이용약관
-            requestURI.startsWith("/auth/privacy") ||         // 개인정보 처리방침
-            requestURI.startsWith("/auth/verify-email") ||    // 이메일 인증
-            requestURI.startsWith("/auth/resend-verification") || // 이메일 재발송
+        if (requestURI.equals("/auth/login") ||
+            requestURI.equals("/auth/register") ||
+            requestURI.equals("/auth/find-password") ||
+            requestURI.equals("/auth/terms") ||
+            requestURI.equals("/auth/privacy") ||
+            requestURI.equals("/auth/verify-email") ||
+            requestURI.equals("/auth/resend-verification") ||
             requestURI.startsWith("/static/") ||
             requestURI.startsWith("/css/") ||
             requestURI.startsWith("/js/") ||

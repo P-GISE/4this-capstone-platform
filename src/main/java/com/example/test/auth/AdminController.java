@@ -150,7 +150,7 @@ public class AdminController {
     /**
      * 4) 사용자 삭제 처리 (/admin/user/delete/{userId})
      */
-    @GetMapping("/user/delete/{userId}")
+    @PostMapping("/user/delete/{userId}")
     public String deleteUser(@PathVariable("userId") Long userId,
                              HttpSession session) {
         AuthDto currentUser = (AuthDto) session.getAttribute("loginUser");

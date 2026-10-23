@@ -65,6 +65,7 @@ public class AuthController {
             }
             
             // 로그인 성공 → 세션에 로그인 사용자 정보와 userId, role을 모두 저장해야 함
+            request.changeSessionId();
             session.setAttribute("loginUser", loginUser);
             session.setAttribute("userId", loginUser.getId());   // ★ 반드시 추가
             session.setAttribute("role", loginUser.getRole());
@@ -123,7 +124,7 @@ public class AuthController {
         }
     }
     
-    @GetMapping("/logout")
+    @PostMapping("/logout")
     public String logout(HttpSession session, HttpServletRequest request) {
         AuthDto u = (AuthDto) session.getAttribute("loginUser");
         if (u != null) {

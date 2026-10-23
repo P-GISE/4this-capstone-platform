@@ -11,12 +11,12 @@
 
     <loggers>
         <!-- HikariCP 연결 풀 로그 -->
-        <Logger name="com.zaxxer.hikari" level="DEBUG" additivity="false">
+        <Logger name="com.zaxxer.hikari" level="WARN" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Console"/>
         </Logger>
 
-        <root level="INFO">
+        <root level="WARN">
             <appender-ref ref="Console" />
         </root>
     </loggers>

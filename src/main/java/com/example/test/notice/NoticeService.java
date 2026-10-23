@@ -211,7 +211,7 @@ public class NoticeService {
     public boolean updateNoticeWithFiles(NoticeDto dto, List<MultipartFile> files, List<Long> deleteFileIds) {
         try {
             boolean updated = updateNotice(dto);
-            String uploadDir = "/your/upload/folder/path";
+            String uploadDir = com.example.test.config.RuntimePaths.uploads("notices");
         
             // 삭제할 파일들 처리
             if (deleteFileIds != null && !deleteFileIds.isEmpty()) {

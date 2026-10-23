@@ -53,7 +53,7 @@ public class AiController {
     private com.example.test.project.ProjectService projectService;
     
     // 파일 업로드 디렉토리 설정
-    private static final String UPLOAD_DIR = "uploads/ai_files/";
+    private static final String UPLOAD_DIR = com.example.test.config.RuntimePaths.uploads("ai_files") + "/";
     
     // 파일 저장 메서드
     private String saveUploadedFile(MultipartFile file) throws IOException {

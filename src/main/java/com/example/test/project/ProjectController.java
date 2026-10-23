@@ -34,6 +34,23 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 @Controller
 @RequestMapping("/projects")
 public class ProjectController {
+    private void requireProjectMember(Long projectId, HttpSession session) {
+        AuthDto actor = (AuthDto) session.getAttribute("loginUser");
+        boolean allowed = actor != null && ("ADMIN".equals(actor.getRole())
+                || projectService.getProjectsForUser(actor.getId()).stream()
+                    .anyMatch(project -> java.util.Objects.equals(projectId, project.getId())));
+        if (!allowed) throw new com.example.test.config.AccessDeniedException();
+    }
+
+    private void requireProjectTask(Long projectId, Long taskId, HttpSession session) {
+        requireProjectMember(projectId, session);
+        ProjectDetailDto detail = projectService.getProjectDetail(projectId);
+        if (detail == null || detail.getTasks() == null || detail.getTasks().stream()
+                .noneMatch(task -> java.util.Objects.equals(taskId, task.getId()))) {
+            throw new com.example.test.config.AccessDeniedException();
+        }
+    }
+
 
     private final ProjectService projectService;
     private final ObjectMapper objectMapper;
@@ -76,7 +93,8 @@ public class ProjectController {
     }
 
     @GetMapping("/{projectId}")
-    public String projectDetail(@PathVariable("projectId") Long projectId, Model model) {
+    public String projectDetail(@PathVariable("projectId") Long projectId, Model model, HttpSession session) {
+        requireProjectMember(projectId, session);
         ProjectDetailDto projectDetail = projectService.getProjectDetail(projectId);
         if (projectDetail == null) {
             return "redirect:/projects";
@@ -155,6 +173,7 @@ public class ProjectController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
             
+            requireProjectMember(projectId, session);
             taskDto.setProjectId(projectId);
             taskDto.setCreatedBy(loginUser.getId());
             ProjectTaskDto createdTask = projectService.createTask(taskDto);
@@ -172,7 +191,8 @@ public class ProjectController {
     }
 
     @PostMapping("/tasks/update")
-    public String updateTask(@ModelAttribute ProjectTaskDto taskDto) {
+    public String updateTask(@ModelAttribute ProjectTaskDto taskDto, HttpSession session) {
+        requireProjectTask(taskDto.getProjectId(), taskDto.getId(), session);
         projectService.updateTask(taskDto);
         return "redirect:/projects/" + taskDto.getProjectId();
     }
@@ -194,6 +214,7 @@ public class ProjectController {
             }
             
             // 태스크 ID와 프로젝트 ID 설정
+            requireProjectTask(projectId, taskId, session);
             taskDto.setId(taskId);
             taskDto.setProjectId(projectId);
             
@@ -211,7 +232,8 @@ public class ProjectController {
     }
 
     @PostMapping("/tasks/delete/{taskId}")
-    public String deleteTask(@PathVariable("taskId") Long taskId, @RequestParam Long projectId) {
+    public String deleteTask(@PathVariable("taskId") Long taskId, @RequestParam Long projectId, HttpSession session) {
+        requireProjectTask(projectId, taskId, session);
         projectService.deleteTask(taskId);
         return "redirect:/projects/" + projectId;
     }
@@ -274,7 +296,8 @@ public class ProjectController {
      * 프로젝트 멤버 관리 페이지
      */
     @GetMapping("/{projectId}/members")
-    public String projectMembers(@PathVariable("projectId") Long projectId, Model model) {
+    public String projectMembers(@PathVariable("projectId") Long projectId, Model model, HttpSession session) {
+        requireProjectMember(projectId, session);
         ProjectDetailDto projectDetail = projectService.getProjectDetail(projectId);
         if (projectDetail == null) {
             return "redirect:/projects";
@@ -287,7 +310,8 @@ public class ProjectController {
      * 프로젝트 보고서 페이지
      */
     @GetMapping("/{projectId}/reports")
-    public String projectReports(@PathVariable("projectId") Long projectId, Model model) {
+    public String projectReports(@PathVariable("projectId") Long projectId, Model model, HttpSession session) {
+        requireProjectMember(projectId, session);
         ProjectDetailDto projectDetail = projectService.getProjectDetail(projectId);
         if (projectDetail == null) {
             return "redirect:/projects";
@@ -321,6 +345,7 @@ public class ProjectController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
             
+            requireProjectMember(projectId, session);
             String message = projectService.uploadReport(projectId, file, loginUser.getId());
             
             response.put("success", true);
@@ -349,6 +374,11 @@ public class ProjectController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
             
+            requireProjectMember(projectId, session);
+            if (projectService.getReportsByProjectId(projectId).stream()
+                    .noneMatch(report -> java.util.Objects.equals(reportId, report.getId()))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
             return projectService.downloadReport(reportId);
             
         } catch (Exception e) {

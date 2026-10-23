@@ -38,7 +38,7 @@ public class SpecialRentalRequestService {
     @Autowired
     private NotificationService notificationService;
     
-    private static final String UPLOAD_DIR = "C:/uploads/special-rentals";
+    private static final String UPLOAD_DIR = com.example.test.config.RuntimePaths.uploads("special-rentals");
     private static final int MAX_SPECIAL_REQUESTS_PER_USER = 5; // 사용자당 최대 동시 특별 신청 수
     
     // ================================

@@ -1,7 +1,7 @@
 package com.example.test.libs;
 
+import com.example.test.config.ExternalServiceUnavailableException;
 import java.util.Properties;
-
 import javax.mail.Authenticator;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -10,50 +10,49 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-@Component  // ← 이 어노테이션을 추가해서 스캔 대상에 포함
+@Component
 public class Email {
+    public void requireConfigured() {
+        if (!"true".equalsIgnoreCase(System.getenv("EMAIL_ENABLED"))
+                || missing("SMTP_HOST") || missing("SMTP_USERNAME")
+                || missing("SMTP_PASSWORD") || missing("SMTP_FROM")) {
+            throw new ExternalServiceUnavailableException("메일 기능이 설정되지 않았습니다. 관리자에게 문의하세요.");
+        }
+    }
 
-    private static final Logger logger = LoggerFactory.getLogger(Email.class);
-    
-    private final String mailFrom    = "paki516@naver.com";
-    private final String appPassword = "NCBUEXVLY7CC";
+    private boolean missing(String name) {
+        String value = System.getenv(name);
+        return value == null || value.trim().isEmpty();
+    }
 
-    public void sendNaverEmail(String mailSubject, String mailContent, String mailTo) {
-        Properties props = new Properties();
-        props.put("mail.smtp.host", "smtp.naver.com");
-        props.put("mail.smtp.port", "587");  // 네이버 권장 포트
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");  // TLS 사용
-        props.put("mail.smtp.starttls.required", "true");
-        props.put("mail.smtp.ssl.trust", "smtp.naver.com");
-        
-        // 연결 타임아웃 설정
-        props.put("mail.smtp.connectiontimeout", "10000");
-        props.put("mail.smtp.timeout", "10000");
-
-        Session session = Session.getInstance(props, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(mailFrom, appPassword);
+    public void sendNaverEmail(String subject, String content, String to) {
+        requireConfigured();
+        Properties properties = new Properties();
+        properties.setProperty("mail.smtp.host", System.getenv("SMTP_HOST"));
+        properties.setProperty("mail.smtp.port", System.getenv().getOrDefault("SMTP_PORT", "587"));
+        properties.setProperty("mail.smtp.auth", "true");
+        properties.setProperty("mail.smtp.starttls.enable", "true");
+        properties.setProperty("mail.smtp.starttls.required", "true");
+        properties.setProperty("mail.smtp.ssl.checkserveridentity", "true");
+        properties.setProperty("mail.smtp.connectiontimeout", "10000");
+        properties.setProperty("mail.smtp.timeout", "10000");
+        properties.setProperty("mail.smtp.writetimeout", "10000");
+        Session session = Session.getInstance(properties, new Authenticator() {
+            @Override protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(System.getenv("SMTP_USERNAME"), System.getenv("SMTP_PASSWORD"));
             }
         });
-
         try {
-            MimeMessage msg = new MimeMessage(session);
-            msg.setFrom(new InternetAddress(mailFrom));
-            msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(mailTo));
-            msg.setSubject(mailSubject, "UTF-8");
-            msg.setContent(mailContent, "text/html; charset=utf-8");
-
-            Transport.send(msg);
-            logger.info("✅ 네이버 메일 전송 완료: to={}, subject={}", mailTo, mailSubject);
-        } catch (MessagingException e) {
-            logger.error("❌ 네이버 메일 전송 실패: to={}, subject={}, error={}", mailTo, mailSubject, e.getMessage(), e);
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(System.getenv("SMTP_FROM")));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+            message.setSubject(subject, "UTF-8");
+            message.setContent(content, "text/html; charset=UTF-8");
+            Transport.send(message);
+        } catch (MessagingException failure) {
+            throw new ExternalServiceUnavailableException("메일을 보내지 못했습니다. 잠시 후 다시 시도하세요.");
         }
     }
 }

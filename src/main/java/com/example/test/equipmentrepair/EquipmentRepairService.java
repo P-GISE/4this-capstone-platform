@@ -23,7 +23,7 @@ public class EquipmentRepairService {
 
     
 
-    private static final String UPLOAD_DIR = "C:/uploads/repair";
+    private static final String UPLOAD_DIR = com.example.test.config.RuntimePaths.uploads("repair");
 
     @Autowired
     private EquipmentRepairDao equipmentRepairDao;

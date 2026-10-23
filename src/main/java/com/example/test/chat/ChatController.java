@@ -162,7 +162,7 @@ public class ChatController {
             List<Map<String, Object>> uploadedFiles = new ArrayList<>();
             
             // 업로드 디렉토리 생성
-            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            String uploadDir = com.example.test.config.RuntimePaths.uploads("chat");
             java.io.File uploadDirFile = new java.io.File(uploadDir);
             if (!uploadDirFile.exists()) {
                 uploadDirFile.mkdirs();

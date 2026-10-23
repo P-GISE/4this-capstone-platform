@@ -53,6 +53,16 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
+    <filter>
+        <filter-name>deploymentSecurityFilter</filter-name>
+        <filter-class>com.example.test.config.DeploymentSecurityFilter</filter-class>
+        <async-supported>true</async-supported>
+    </filter>
+    <filter-mapping>
+        <filter-name>deploymentSecurityFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
     <!-- Spring Security Filter -->
     <!--
     <filter>
@@ -69,5 +79,10 @@
     <!-- 세션 설정 -->
     <session-config>
         <session-timeout>30</session-timeout>
+        <cookie-config>
+            <http-only>true</http-only>
+            <secure>true</secure>
+        </cookie-config>
+        <tracking-mode>COOKIE</tracking-mode>
     </session-config>
 </web-app>

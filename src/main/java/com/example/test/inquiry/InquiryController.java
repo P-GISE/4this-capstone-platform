@@ -172,7 +172,7 @@ public class InquiryController {
 
         // 첨부파일 저장
         if (dto.isHasAttachment()) {
-            String uploadPath = "C:/uploads/inquiry";
+            String uploadPath = com.example.test.config.RuntimePaths.uploads("inquiry");
             
             Path uploadDir = Paths.get(uploadPath);
             if (!Files.exists(uploadDir)) {
@@ -250,7 +250,7 @@ public class InquiryController {
                     if (file != null && !file.isEmpty()) {
                         try {
                             // 파일 저장 경로
-                            String uploadPath = "C:/uploads/inquiry/answers";
+                            String uploadPath = com.example.test.config.RuntimePaths.uploads("inquiry/answers");
                             Path uploadDir = Paths.get(uploadPath);
                             Files.createDirectories(uploadDir);
                             
@@ -426,7 +426,7 @@ public class InquiryController {
         
         // 새 첨부파일 저장
         if (hasNewAttachments) {
-            String uploadPath = "C:/uploads/inquiry";
+            String uploadPath = com.example.test.config.RuntimePaths.uploads("inquiry");
             
             Path uploadDir = Paths.get(uploadPath);
             if (!Files.exists(uploadDir)) {
