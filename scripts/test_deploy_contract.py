@@ -22,12 +22,12 @@ class DurabilityOrderTest(unittest.TestCase):
         events = []
         handle = Mock(); handle.__enter__ = Mock(return_value=handle); handle.__exit__ = Mock(return_value=False)
         handle.fileno.return_value = 11
-        fake = types.SimpleNamespace(O_DIRECTORY=0, open=lambda *args: 77,
+        fake = types.SimpleNamespace(O_DIRECTORY=0, open=lambda *args: 77, path=types.SimpleNamespace(exists=lambda name: True),
             fsync=lambda fd: events.append(('sync', fd)),
             unlink=lambda name: events.append(('unlink', name)), close=lambda fd: events.append(('close', fd)))
         with patch.dict(sys.modules, {'os': fake}), patch('builtins.open', return_value=handle):
             exec(CLEAR_MARKER, {})
-        self.assertEqual([('sync', 11), ('sync', 11), ('sync', 77),
+        self.assertEqual([('sync', 11), ('sync', 11), ('sync', 11), ('sync', 77),
                           ('unlink', 'deploy-in-progress'), ('sync', 77), ('close', 77)], events)
 
     def test_failed_sync_does_not_remove_marker(self):

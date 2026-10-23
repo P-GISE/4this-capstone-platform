@@ -78,6 +78,9 @@ import os
 for name in ['.env', 'deployed.sha']:
     with open(name, 'rb') as state:
         os.fsync(state.fileno())
+if os.path.exists('failed.sha'):
+    with open('failed.sha', 'rb') as failed:
+        os.fsync(failed.fileno())
 directory = os.open('.', os.O_DIRECTORY)
 try:
     os.fsync(directory)
@@ -114,6 +117,9 @@ trap finish EXIT
 trap 'exit 1' TERM INT
 python3 - <<'PY'
 import os
+for name in ['.env.previous', 'deployed.previous']:
+    with open(name, 'rb') as backup:
+        os.fsync(backup.fileno())
 with open('deploy-in-progress', 'x') as marker:
     marker.write('application_switch_started\n')
     marker.flush()

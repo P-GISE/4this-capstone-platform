@@ -73,6 +73,7 @@ jobs:
           path: |
             target/surefire-reports/
             runtime-smoke.json
+            runtime-smoke-summary.json
       - name: Stop isolated test runtime
         if: always()
         env:
