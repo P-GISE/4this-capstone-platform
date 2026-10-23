@@ -2,6 +2,7 @@ package com.example.test.deployment;
 
 import com.example.test.auth.AuthDto;
 import com.example.test.config.DeploymentSecurityFilter;
+import com.example.test.config.AuthInterceptor;
 import org.junit.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -43,5 +44,11 @@ public class DeploymentSecurityTest {
         assertEquals(200, run("GET", "/admin/users", null, null, "ADMIN"));
         assertEquals(200, run("GET", "/archive/admin/pending", null, null, "STAFF"));
         assertEquals(403, run("GET", "/admin/users", null, null, "STAFF"));
+    }
+
+    @Test public void normalizedProtectedRouteCannotBorrowLoginPrefix() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/auth/login/../projects/20");
+        request.setServletPath("/projects/20");
+        assertFalse(new AuthInterceptor().preHandle(request, new MockHttpServletResponse(), new Object()));
     }
 }

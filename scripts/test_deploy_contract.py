@@ -8,11 +8,34 @@ import sys
 import tarfile
 import tempfile
 import unittest
+import types
+from unittest.mock import Mock, patch
 
 SCRIPT = pathlib.Path(__file__).with_name('deploy-app.sh').read_text()
 VALIDATOR = SCRIPT.split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
 FINISH = 'finish() {' + SCRIPT.split('finish() {', 1)[1].split('\ntrap finish EXIT', 1)[0]
+CLEAR_MARKER = SCRIPT.split('clear_marker() {', 1)[1].split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
 SHA = 'a' * 40
+
+class DurabilityOrderTest(unittest.TestCase):
+    def test_marker_is_removed_only_after_file_and_directory_sync(self):
+        events = []
+        handle = Mock(); handle.__enter__ = Mock(return_value=handle); handle.__exit__ = Mock(return_value=False)
+        handle.fileno.return_value = 11
+        fake = types.SimpleNamespace(O_DIRECTORY=0, open=lambda *args: 77,
+            fsync=lambda fd: events.append(('sync', fd)),
+            unlink=lambda name: events.append(('unlink', name)), close=lambda fd: events.append(('close', fd)))
+        with patch.dict(sys.modules, {'os': fake}), patch('builtins.open', return_value=handle):
+            exec(CLEAR_MARKER, {})
+        self.assertEqual([('sync', 11), ('sync', 11), ('sync', 77),
+                          ('unlink', 'deploy-in-progress'), ('sync', 77), ('close', 77)], events)
+
+    def test_failed_sync_does_not_remove_marker(self):
+        handle = Mock(); handle.__enter__ = Mock(return_value=handle); handle.__exit__ = Mock(return_value=False)
+        fake = types.SimpleNamespace(fsync=Mock(side_effect=OSError('synthetic')), unlink=Mock())
+        with patch.dict(sys.modules, {'os': fake}), patch('builtins.open', return_value=handle):
+            with self.assertRaises(OSError): exec(CLEAR_MARKER, {})
+        fake.unlink.assert_not_called()
 
 class ArchiveContractTest(unittest.TestCase):
     def validate(self, tags, extra=False, user='app'):
@@ -58,6 +81,7 @@ class RollbackContractTest(unittest.TestCase):
 sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 switched=1
 healthy() { return 0; }
+clear_marker() { rm -f deploy-in-progress; }
 timeout() { shift; "$@"; }
 docker() { printf '%s\n' "$*" >> docker-trace; }
 cp() {

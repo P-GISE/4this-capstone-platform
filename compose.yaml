@@ -18,7 +18,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    networks: [private]
+    networks: [private, web]
     mem_limit: 768m
     cpus: 0.75
     pids_limit: 256
@@ -58,5 +58,6 @@ volumes:
   database:
   uploads:
 networks:
+  web:
   private:
     internal: true

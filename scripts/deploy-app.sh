@@ -72,6 +72,21 @@ healthy() {
   done
   return 1
 }
+clear_marker() {
+  python3 - <<'PY'
+import os
+for name in ['.env', 'deployed.sha']:
+    with open(name, 'rb') as state:
+        os.fsync(state.fileno())
+directory = os.open('.', os.O_DIRECTORY)
+try:
+    os.fsync(directory)
+    os.unlink('deploy-in-progress')
+    os.fsync(directory)
+finally:
+    os.close(directory)
+PY
+}
 finish() {
   result=$?
   trap - EXIT
@@ -90,7 +105,7 @@ finish() {
     if [[ $recovery_failed == 1 ]]; then
       printf '%s\n' 'manual_recovery_required' > recovery-required || true
     else
-      rm -f deploy-in-progress
+      clear_marker || printf '%s\n' 'durability_recovery_required' > recovery-required
     fi
   fi
   exit "$result"
@@ -126,5 +141,5 @@ healthy
 printf '%s\n' "$sha" > deployed.next
 mv deployed.next deployed.sha
 switched=0
-rm -f deploy-in-progress
+clear_marker
 printf '%s\n' 'deployment_success=true database_container_unchanged=true'
