@@ -14,7 +14,13 @@
     <mvc:annotation-driven />
 
     <mvc:resources mapping="/resources/**" location="/resources/" />
-    <mvc:resources mapping="/uploads/**" location="file:${UPLOAD_DIR:/app/uploads}/" />
+    <mvc:resources mapping="/uploads/**" location="file:${UPLOAD_DIR:/app/uploads}/">
+        <mvc:resource-chain resource-cache="false">
+            <mvc:resolvers>
+                <bean class="com.example.test.config.PrivateUploadResourceResolver" />
+            </mvc:resolvers>
+        </mvc:resource-chain>
+    </mvc:resources>
 
     <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
         <property name="prefix" value="/WEB-INF/views/" />

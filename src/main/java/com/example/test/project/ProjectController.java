@@ -351,10 +351,13 @@ public class ProjectController {
             response.put("success", true);
             response.put("message", message);
             return ResponseEntity.ok(response);
-            
+        } catch (IllegalArgumentException invalid) {
+            response.put("success", false);
+            response.put("message", "지원하는 형식의 10MB 이하 보고서를 선택해주세요.");
+            return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
             response.put("success", false);
-            response.put("message", "업로드 실패: " + e.getMessage());
+            response.put("message", "보고서를 저장하지 못했습니다.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }

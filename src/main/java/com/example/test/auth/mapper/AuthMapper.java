@@ -46,6 +46,10 @@ public interface AuthMapper {
         @Param("username") String username
     );
 
+    int updatePasswordForReset(@Param("userId") Long userId,
+                              @Param("previousHash") String previousHash,
+                              @Param("password") String password);
+
     /**
      * 이메일 인증 처리 (username 기준)
      * @param username 대상 사용자의 로그인 이름

@@ -68,15 +68,12 @@
                     
                     <!-- 프로필 정보 폼 -->
                     <form id="updateMypageForm" action="/mypage/update-mypage" method="POST">
-                        <!-- 필수 숨겨진 필드: username과 id -->
-                        <input type="hidden" name="username" value="${profile.username}">
-                        <input type="hidden" name="id" value="${profile.id}">
                         
                         <!-- 두 컬럼 레이아웃 -->
                         <div class="form-row">
                             <div class="form-group half-width">
                                 <label for="name">이름</label>
-                                <input type="text" id="name" name="name" value="${profile.name}" 
+                                <input type="text" id="name" name="name" value="<c:out value='${profile.name}' />"
                                        placeholder="이름을 입력하세요" required>
                             </div>
                             <div class="form-group half-width">
@@ -106,12 +103,12 @@
                         <div class="form-row">
                             <div class="form-group half-width">
                                 <label for="email">이메일</label>
-                                <input type="email" id="email" name="email" value="${profile.email}" 
+                                <input type="email" id="email" name="email" value="<c:out value='${profile.email}' />"
                                        placeholder="이메일을 입력하세요" required>
                             </div>
                             <div class="form-group half-width">
                                 <label for="phone">연락처</label>
-                                <input type="tel" id="phone" name="phone" value="${profile.phone}" 
+                                <input type="tel" id="phone" name="phone" value="<c:out value='${profile.phone}' />"
                                        placeholder="010-0000-0000" required>
                             </div>
                         </div>

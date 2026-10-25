@@ -338,6 +338,11 @@
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-surefire-plugin</artifactId>
               <version>3.6.0</version>
+              <configuration>
+                  <environmentVariables>
+                      <UPLOAD_DIR>${project.build.directory}/test-uploads</UPLOAD_DIR>
+                  </environmentVariables>
+              </configuration>
           </plugin>
           <!-- Maven 컴파일러 플러그인 -->
           <plugin>

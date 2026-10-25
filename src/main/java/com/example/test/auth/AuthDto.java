@@ -39,12 +39,7 @@ public class AuthDto {
     public String toSafeString() {
         return "AuthDto{" +
                 "id=" + id +
-                ", username='" + (username != null ? username : "") + '\'' +
-                ", name='" + (name != null ? name : "") + '\'' +
-                ", email='" + (email != null ? email : "") + '\'' +
-                ", phone='" + (phone != null ? phone : "") + '\'' +
                 ", role='" + (role != null ? role : "") + '\'' +
-                ", department='" + (department != null ? department : "") + '\'' +
                 ", isEmailVerified=" + isEmailVerified +
                 ", status=" + status +
                 '}';

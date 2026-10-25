@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -512,24 +511,10 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public String uploadReport(Long projectId, MultipartFile file, Long uploaderId) {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("파일이 비어있습니다.");
-        }
-        
+        Path filePath = null;
         try {
-            // 절대 경로 기준으로 업로드 디렉토리 생성
-            String baseDir = System.getProperty("user.dir"); // 현재 프로젝트 디렉토리
-            String uploadDir = com.example.test.config.RuntimePaths.uploads("reports/" + projectId);
-            Path uploadPath = Paths.get(uploadDir);
-            Files.createDirectories(uploadPath);
-            
-            // 파일명 생성 (중복 방지를 위해 시간스탬프 추가)
+            filePath = ReportFiles.save(Paths.get(com.example.test.config.RuntimePaths.uploads("reports")), projectId, file);
             String originalFilename = file.getOriginalFilename();
-            String filename = System.currentTimeMillis() + "_" + originalFilename;
-            Path filePath = uploadPath.resolve(filename);
-            
-            // 파일 저장
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
             
             // 데이터베이스에 보고서 정보 저장 (절대 경로로 저장)
             ProjectReportDto reportDto = new ProjectReportDto();
@@ -545,8 +530,13 @@ public class ProjectServiceImpl implements ProjectService {
             
             return "보고서가 성공적으로 업로드되었습니다.";
             
-        } catch (IOException e) {
-            throw new RuntimeException("파일 업로드 중 오류가 발생했습니다: " + e.getMessage());
+        } catch (IOException | RuntimeException e) {
+            if (filePath != null) {
+                try { Files.deleteIfExists(filePath); }
+                catch (IOException cleanupFailed) { e.addSuppressed(cleanupFailed); }
+            }
+            if (e instanceof IllegalArgumentException) throw (IllegalArgumentException) e;
+            throw new RuntimeException("보고서 파일을 저장하지 못했습니다.");
         }
     }
     
@@ -565,19 +555,18 @@ public class ProjectServiceImpl implements ProjectService {
             }
             
             // 파일 경로 (절대 경로 사용)
-            Path filePath = Paths.get(report.getFilePath()).normalize();
+            Path filePath = ReportFiles.downloadPath(Paths.get(com.example.test.config.RuntimePaths.uploads("reports")), report.getFilePath());
             Resource resource = new UrlResource(filePath.toUri());
             
             if (!resource.exists() || !resource.isReadable()) {
                 return ResponseEntity.notFound().build();
             }
             
-            // 한글 파일명을 안전하게 처리
-            String safeFileName = new String(report.getFileName().getBytes("UTF-8"), "ISO-8859-1");
-            
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + safeFileName + "\"")
+                    .header("X-Content-Type-Options", "nosniff")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, org.springframework.http.ContentDisposition.attachment()
+                            .filename(report.getFileName().replaceAll("[\\r\\n]", ""), java.nio.charset.StandardCharsets.UTF_8).build().toString())
                     .body(resource);
                     
         } catch (IOException e) {

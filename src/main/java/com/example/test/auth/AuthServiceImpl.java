@@ -12,8 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import com.example.test.auth.mapper.AuthMapper;
 import com.example.test.libs.Email;
@@ -31,9 +29,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private Email email;
-
-    @Autowired
-    private PlatformTransactionManager transactionManager;
 
     @Override
     public RegistrationResult register(AuthDto dto) {
@@ -210,33 +205,25 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public boolean sendTemporaryPassword(String emailAddr) {
+    public boolean requestPasswordReset(String emailAddr, String clientAddress) {
+        if (emailAddr == null || emailAddr.length() > 255 || clientAddress == null
+                || clientAddress.length() > 100 || !passwordResetTokens.allowRequest(emailAddr, clientAddress)) return false;
+        AuthDto user = authMapper.findByEmail(emailAddr.trim());
+        if (user == null || user.getPassword() == null) return false;
         email.requireConfigured();
-        return new TransactionTemplate(transactionManager).execute(status -> {
-            AuthDto user = authMapper.findByEmail(emailAddr);
-            if (user == null) return false;
-            String temp = generateTempPassword();
-            String encoded = passwordEncoder.encode(temp);
-            if (authMapper.updatePasswordByEmail(encoded, emailAddr) != 1) {
-                status.setRollbackOnly();
-                return false;
-            }
-            String subject = "[AI캡스톤] 임시 비밀번호 안내";
-            String content = String.format(
-                    "임시 비밀번호는 <strong>%s</strong> 입니다. 로그인 후 반드시 비밀번호를 변경해주세요.", temp);
-            // SMTP failure must escape this transaction so the existing password remains valid.
-            email.sendNaverEmail(subject, content, emailAddr);
+        String token = passwordResetTokens.issue(user.getId(), user.getEmail(), user.getPassword());
+        if (token == null) return false;
+        try {
+            String link = System.getenv("APP_ORIGIN") + "/auth/reset-password#token=" + token;
+            email.sendNaverEmail("[AI캡스톤] 비밀번호 재설정",
+                    "<p>요청하지 않았다면 이 메일을 무시하세요. 기존 비밀번호는 변경되지 않았습니다.</p>"
+                    + "<p><a href=\"" + link + "\">비밀번호 재설정</a> (15분 이내 한 번만 사용 가능)</p>", user.getEmail());
             return true;
-        });
-    }
-
-    private String generateTempPassword() {
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 8; i++) {
-            sb.append(chars.charAt((int)(Math.random() * chars.length())));
+        } catch (RuntimeException failed) {
+            passwordResetTokens.revoke(token);
+            logger.warn("password_reset_delivery_failed");
+            throw failed;
         }
-        return sb.toString();
     }
 
     @Override
@@ -245,9 +232,15 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public boolean resetPassword(String username, String newPassword) {
-        String encoded = passwordEncoder.encode(newPassword);
-        return authMapper.updatePasswordByUsername(encoded, username) > 0;
+    public boolean resetPassword(String token, String newPassword) {
+        if (newPassword == null || newPassword.length() < 8
+                || newPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) return false;
+        PasswordResetTokens.Ticket ticket = passwordResetTokens.consume(token);
+        if (ticket == null) return false;
+        AuthDto current = authMapper.findById(ticket.userId);
+        if (current == null || !ticket.email.equals(current.getEmail())) return false;
+        return authMapper.updatePasswordForReset(ticket.userId, ticket.passwordHash,
+                passwordEncoder.encode(newPassword)) == 1;
     }
 
     @Override
@@ -297,6 +290,24 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public boolean updateOwnProfile(Long actorId, ProfileUpdateDto profile) {
+        if (actorId == null || profile == null || profile.getName() == null
+                || profile.getName().trim().isEmpty() || profile.getName().length() > 100
+                || profile.getEmail() == null || profile.getEmail().length() > 255
+                || !profile.getEmail().matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")
+                || (profile.getPhone() != null && profile.getPhone().length() > 40)) return false;
+        AuthDto actor = authMapper.findById(actorId);
+        if (actor == null) return false;
+        AuthDto update = new AuthDto();
+        update.setId(actor.getId());
+        update.setUsername(actor.getUsername());
+        update.setName(profile.getName().trim());
+        update.setEmail(profile.getEmail().trim());
+        update.setPhone(profile.getPhone());
+        return authMapper.updateUser(update) == 1;
+    }
+
+    @Override
     public boolean updateUser(AuthDto authDto) {
         try {
             // 입력 데이터 검증
@@ -306,13 +317,11 @@ public class AuthServiceImpl implements AuthService {
             }
             
             if (authDto.getId() == null) {
-                logger.error("updateUser: authDto.getId()가 null입니다. username: {}", authDto.getUsername());
+                logger.error("profile_update_missing_actor_id");
                 return false;
             }
             
-            logger.info("updateUser 시작: id={}, username={}, name={}, email={}, phone={}", 
-                       authDto.getId(), authDto.getUsername(), authDto.getName(), 
-                       authDto.getEmail(), authDto.getPhone());
+            logger.info("profile_update_started actor_id={}", authDto.getId());
             
             // 1) users 기본 정보 업데이트 (name, email, phone)
             int updateResult = authMapper.updateUser(authDto);
@@ -368,7 +377,7 @@ public class AuthServiceImpl implements AuthService {
             logger.info("updateUser 완료: 모든 업데이트 성공");
             return true;
         } catch (Exception e) {
-            logger.error("사용자 정보 업데이트 중 오류 발생", e);
+            logger.error("profile_update_failed");
             return false;
         }
     }
@@ -457,6 +466,9 @@ public class AuthServiceImpl implements AuthService {
     public AuthDto getUserById(Long userId) {
         return authMapper.selectById(userId);
     }
+
+    // shortcut: reset tickets fail closed on restart; use shared storage before adding app replicas.
+    private final PasswordResetTokens passwordResetTokens = new PasswordResetTokens();
 
     // 이메일 인증 토큰을 임시로 메모리에 저장 (실제 환경에서는 DB나 Redis 사용 권장)
     private final Map<String, String> emailVerificationTokens = new HashMap<>();

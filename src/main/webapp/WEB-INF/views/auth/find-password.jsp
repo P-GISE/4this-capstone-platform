@@ -452,7 +452,7 @@
                 </div>
                 
                 <h2 class="find-password-title">비밀번호 찾기</h2>
-                <p class="find-password-description">계정 확인을 위해 등록된 정보를 입력해주세요.</p>
+                <p class="find-password-description">등록된 이메일로 비밀번호 재설정 링크를 요청하세요.</p>
                 
                 <c:if test="${not empty findPasswordError}">
                     <div class="alert-danger">
@@ -468,18 +468,6 @@
 
                 <form action="/auth/find-password" method="post" id="findPasswordForm">
                     <div class="form-group">
-                        <label class="form-label">이름</label>
-                        <input type="text" class="form-input" name="name" required
-                               placeholder="이름을 입력하세요">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">학번/교번</label>
-                        <input type="text" class="form-input" name="username" required
-                               placeholder="학번 또는 교번을 입력하세요">
-                    </div>
-                    
-                    <div class="form-group">
                         <label class="form-label">이메일</label>
                         <input type="email" class="form-input" name="email" required
                                placeholder="계정에 등록된 이메일을 입력하세요">
@@ -487,7 +475,7 @@
                     
                     <button type="submit" class="find-password-btn">
                         <i class="mdi mdi-email-send-outline me-2"></i>
-                        인증코드 발송
+                        재설정 링크 요청
                     </button>
                 </form>
                 
@@ -504,11 +492,9 @@
     <script>
         // 폼 유효성 검사
         document.getElementById('findPasswordForm').addEventListener('submit', function(e) {
-            const name = document.querySelector('input[name="name"]').value.trim();
-            const username = document.querySelector('input[name="username"]').value.trim();
             const email = document.querySelector('input[name="email"]').value.trim();
             
-            if (!name || !username || !email) {
+            if (!email) {
                 e.preventDefault();
                 alert('모든 필드를 입력해주세요.');
                 return false;
