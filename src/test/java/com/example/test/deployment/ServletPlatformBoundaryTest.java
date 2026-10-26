@@ -34,4 +34,12 @@ public class ServletPlatformBoundaryTest {
     @Test public void servletUploadLimitHasABoundedClientError() throws Exception {
         assertEquals(413,mvc().perform(get("/oversize")).andReturn().getResponse().getStatus());
     }
+    @Test public void existingSpringFiveBcryptHashesRemainValid() {
+        // Public synthetic fixture generated with the previous Spring Security 5.8.11.
+        String encoded = "$2a$04$3/y3nwiylkXAk.5xSsXhNethjYTrK1/myWgDs.cBQSIFS02sLu0lW";
+        org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder encoder =
+            new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        assertTrue(encoder.matches("synthetic-legacy-password",encoded));
+        assertFalse(encoder.matches("synthetic-wrong-password",encoded));
+    }
 }
