@@ -18,7 +18,7 @@ Jackson 모듈은 안전2.18.11로 정렬했다. Spring7.0의 Jackson2 fallback�
 |---|---|
 | Archive /archive/write, /archive/edit | attachFile(List) |
 | Chat /chat/upload | files(array), roomId |
-| Inquiry /inquiry/write, /inquiry/answer | attachments, answerAttachments |
+| Inquiry /inquiry/write, /inquiry/edit, /inquiry/answer | attachments, answerAttachments |
 | Notice /notice/write, /notice/update | attachFile, attachFile[] |
 | Project /projects/{projectId}/reports/upload | file |
 | EquipmentRepair /repair/submit | image(optional) |
