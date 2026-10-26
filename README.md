@@ -64,8 +64,8 @@
 
 ## 기술 스택
 
-- Java 8
-- Spring Framework 5.3
+- Java 17 API 기준, 컨테이너 JDK 21
+- Spring Framework 7.0 / Jakarta Servlet 6.1 / Tomcat 11
 - Spring Security
 - JSP, JSTL, Bootstrap, jQuery
 - MyBatis, Spring JDBC
@@ -101,22 +101,18 @@
 
 필수 환경:
 
-- Java 8 이상
+- Java 17 이상 (검증 컨테이너 JDK 21)
 - Maven 3.6 이상
 - MariaDB
-- Servlet 4 호환 WAS 또는 Maven Jetty plugin
+- Servlet 6.1 호환 Tomcat 11
 
-데이터베이스를 생성한 뒤 Spring 설정의 DB 접속 정보를 로컬 환경에 맞게 조정합니다. 실제 계정과 비밀번호는 GitHub에 올리지 않고 로컬 설정 파일이나 배포 환경변수로 관리합니다. 이 저장소에는 별도 SQL 초기화 파일이 포함되어 있지 않으므로, MyBatis mapper와 DTO/entity를 기준으로 필요한 테이블을 준비해야 합니다.
+DB 접속 정보는 배포 환경변수로 관리하며 실제 계정과 비밀번호를 GitHub에 올리지 않습니다. `database/schema.sql`은 신규 환경용 스키마 계약입니다. 플랫폼 전환은 이 파일을 변경하지 않으며 기존 운영 DB에 다시 실행하지 않습니다. 검증용 새 DB 구성과 운영 승인 경계는 배포 문서를 따릅니다.
 
 ```bash
 mvn clean package
 ```
 
-개발 서버 실행:
-
-```bash
-mvn jetty:run
-```
+생성된 `target/ROOT.war`는 Tomcat 11에서 실행합니다. 저장소의 Dockerfile과 Compose가 같은 WAR·업로드 경로·세션 설정을 사용합니다. 예전 Jetty 9 플러그인은 javax 기반이어서 제거했으며 `mvn jetty:run`은 더 이상 지원하지 않습니다. DB 스키마와 기존 이미지 롤백 경계는 [플랫폼 전환 기록](docs/security-platform-20261026.md)을 확인합니다.
 
 기본 접속 주소:
 

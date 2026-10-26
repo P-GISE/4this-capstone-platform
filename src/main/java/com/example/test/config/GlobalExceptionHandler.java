@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 전역 예외 처리기
@@ -14,6 +14,16 @@ import javax.servlet.http.HttpServletRequest;
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public void handleMissingResource(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        response.sendError(404);
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public void handleUploadLimit(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        response.sendError(413);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ModelAndView handleDenied(AccessDeniedException ex) {
         ModelAndView view = new ModelAndView("error/500");

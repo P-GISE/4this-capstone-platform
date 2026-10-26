@@ -2,6 +2,7 @@ import json
 import os
 import secrets
 import subprocess
+import http.client
 from http.cookies import SimpleCookie
 import urllib.error
 import urllib.parse
@@ -20,18 +21,21 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 opener = urllib.request.build_opener(NoRedirect)
 cookie = None
 
-def probe(path, expected, method="GET", origin=None, body=None, authenticated=False):
+def probe(path, expected, method="GET", origin=None, body=None, authenticated=False, content_type=None, contains=None):
     request = urllib.request.Request(BASE + path, data=body, method=method)
     if origin:
         request.add_header("Origin", origin)
     if authenticated:
         request.add_header("Cookie", cookie)
     if body:
-        request.add_header("Content-Type", "application/x-www-form-urlencoded")
+        request.add_header("Content-Type", content_type or "application/x-www-form-urlencoded")
     try:
         with opener.open(request, timeout=15) as response:
             status = response.status
             headers = response.headers
+            if contains is not None:
+                page = response.read(512 * 1024)
+                assert contains in page.decode("utf-8"), "Synthetic UTF-8 view assertion failed"
     except urllib.error.HTTPError as error:
         status = error.code
         headers = error.headers
@@ -48,7 +52,8 @@ def sql(statement):
     return result.stdout.strip()
 
 probe("/health", 200)
-probe("/auth/login", 200)
+probe("/auth/login", 200, contains="로그인")
+probe("/resources/synthetic-missing.js", 404)
 probe("/auth/login", 403, "POST", "https://untrusted.example.invalid", b"")
 probe("/auth/login", 403, "POST", body=b"")
 probe("/admin/users", 403)
@@ -83,6 +88,39 @@ assert sql("SELECT COUNT(*) FROM project_members") == "2", "Project membership d
 probe("/projects/1", 200, authenticated=True)
 probe("/equipment/list", 200, authenticated=True)
 probe("/notice/list", 200, authenticated=True)
+
+# Real Tomcat multipart/JSP/static boundary; payloads and cookies stay in memory.
+boundary = "fourthis-synthetic-boundary"
+def multipart(payload, filename="합성-report.pdf"):
+    return (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+            'Content-Type: application/pdf\r\n\r\n').encode() + payload + f'\r\n--{boundary}--\r\n'.encode()
+probe("/projects/1/reports/upload", 200, "POST", "http://localhost:3401",
+      multipart(b"%PDF-synthetic-platform"), True, "multipart/form-data; boundary="+boundary)
+assert sql("SELECT COUNT(*) FROM project_reports") == "1", "Synthetic report persistence failed"
+probe("/projects/1/reports", 200, authenticated=True, contains="합성-report.pdf")
+headers = probe("/projects/1/reports/download/1", 200, authenticated=True)
+assert headers.get("X-Content-Type-Options") == "nosniff"
+assert headers.get("Content-Disposition", "").startswith("attachment;")
+probe("/uploads/reports/synthetic-missing.pdf", 404, authenticated=True)
+# Use HTTP's admission handshake: Tomcat rejects the declared request before
+# consuming its body. Its bounded default swallow policy may close a client that
+# blindly streams megabytes after that rejection; do not weaken that policy.
+connection = http.client.HTTPConnection("127.0.0.1", 3401, timeout=15)
+try:
+    connection.putrequest("POST", "/projects/1/reports/upload")
+    for name, value in {"Origin":"http://localhost:3401", "Cookie":cookie,
+                        "Content-Type":"multipart/form-data; boundary="+boundary,
+                        "Content-Length":str(11 * 1024 * 1024), "Expect":"100-continue"}.items():
+        connection.putheader(name, value)
+    connection.endheaders()
+    rejected = connection.getresponse()
+    results.append({"path":"/projects/1/reports/upload", "method":"POST",
+                    "status":rejected.status,"expected":413,"expect_continue":True})
+    Path("runtime-smoke.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+    assert rejected.status == 413, "Oversized multipart must be rejected before accepting its body"
+finally:
+    connection.close()
+assert sql("SELECT COUNT(*) FROM project_reports") == "1", "Rejected report must not persist"
 for service in ("app", "db"):
     container = subprocess.check_output(["docker", "compose", "ps", "-q", service], text=True).strip()
     log_driver = subprocess.check_output(["docker", "inspect", "--format", "{{.HostConfig.LogConfig.Type}}", container], text=True).strip()

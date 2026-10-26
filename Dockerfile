@@ -5,7 +5,7 @@ COPY src ./src
 COPY database ./database
 RUN mvn -B -ntp clean package
 
-FROM tomcat:9.0-jdk21-temurin-noble
+FROM tomcat:11.0.27-jdk21-temurin-noble@sha256:6e0d99d18e38a23a95574a67bd7849d46844b649c9b5238d91a3d0a3bf5f489a
 RUN useradd --system --uid 10001 --create-home app \
     && mkdir -p /app/uploads \
     && chown -R app:app /app /usr/local/tomcat \

@@ -94,8 +94,8 @@ public class ReportSecurityTest {
             MockHttpServletRequest denied = new MockHttpServletRequest("GET", "/uploads/reports/report.pdf");
             denied.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE, "reports/report.pdf");
             MockHttpServletResponse deniedResponse = new MockHttpServletResponse();
-            handler.handleRequest(denied, deniedResponse);
-            assertEquals(404, deniedResponse.getStatus());
+            assertThrows(org.springframework.web.servlet.resource.NoResourceFoundException.class,
+                () -> handler.handleRequest(denied, deniedResponse));
             MockHttpServletRequest allowed = new MockHttpServletRequest("GET", "/uploads/public.txt");
             allowed.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE, "public.txt");
             MockHttpServletResponse allowedResponse = new MockHttpServletResponse();

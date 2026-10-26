@@ -5,7 +5,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Paths;
 import java.util.List;
 
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 import java.nio.file.Path;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;

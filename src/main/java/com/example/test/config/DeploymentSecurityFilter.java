@@ -1,10 +1,10 @@
 package com.example.test.config;
 import java.io.IOException;
 import java.net.URI;
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import com.example.test.auth.AuthDto;
 public class DeploymentSecurityFilter implements Filter {
     private final String origin;
