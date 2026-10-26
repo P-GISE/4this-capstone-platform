@@ -25,10 +25,10 @@ Jackson 모듈은 안전2.18.11로 정렬했다. Spring7.0의 Jackson2 fallback�
 | SpecialRental /special-rental/request | attachments(optional) |
 | AI /ai/recommend-project, /ai/ask, /ai/project-chat | files(optional array) |
 
-AI·메일은 CI에서 OFF, 실제 제공자 호출0이다. Project 경로는 실제 Tomcat의 정상PDF upload/DB저장·UTF8 JSP목록·권한 download/attachment/nosniff·정적404·11MiB요청413·실패DB불변을 합성 CI에 추가했다. 나머지 업무별 저장·권한·파일형식은 기존 서비스 로직을 보존하며 이 플랫폼 변경으로 전체 보안 통과를 의미하지 않는다.
+AI·메일은 CI에서 OFF, 실제 제공자 호출0이다. Project 경로는 실제 Tomcat의 정상PDF upload/DB저장·UTF8 JSP목록·권한 download/attachment/nosniff·정적404·11MiB Content-Length/Expect 요청413·실패DB불변을 합성 CI에 추가했다. 초과 body를 응답 확인 없이 계속 보내는 raw client는 Tomcat의 기본 유한 maxSwallow 제한으로 연결이 닫힐 수 있다. 이를 숨기기 위해 무제한 swallow나 허용 크기 상향을 적용하지 않았다. 나머지 업무별 저장·권한·파일형식은 기존 서비스 로직을 보존하며 이 플랫폼 변경으로 전체 보안 통과를 의미하지 않는다.
 
 ## 검증·배포·롤백 경계
 
-로컬 clean verify55개 중54통과/기존MariaDB환경1skip, WAR 생성. 실제 Linux MariaDB·Docker/Tomcat11/UTF8JSP/multipart/쿠키 검증은 PR CI의 최신 결과를 따른다. POM include-dev High/Critical21→0, Maven resolved dependency의 CycloneDX SBOM Trivy도0을 확인했다. 단순 loose-JAR scan은 대상0으로 인식되지 않아 통과 근거로 사용하지 않았다. SBOM의 third-party/hash warning은 남으며 전체 OS 이미지 취약점 부재나 운영 완료를 주장하지 않는다.
+첫 실제 Tomcat11 CI에서 health는200이지만 로그인 JSP가500이었다. Jakarta JSTL 구현이 API를provided로만 선언해WAR에서 누락된 원인을 ClassNotFound 회귀로 재현하고 Jakarta JSTL API3.0.2를 명시해 수정했다. 로컬 최종 clean verify56개 중55통과/기존MariaDB환경1skip, WAR 생성. 실제 Linux MariaDB·Docker/Tomcat11/UTF8JSP/multipart/쿠키 검증은 PR CI의 최신 결과를 따른다. POM include-dev High/Critical21→0, Maven resolved57component CycloneDX SBOM Trivy도0을 확인했다. 단순 loose-JAR scan은 대상0으로 인식되지 않아 통과 근거로 사용하지 않았다. SBOM의 third-party/hash warning은 남으며 전체 OS 이미지 취약점 부재나 운영 완료를 주장하지 않는다.
 
 기존 schema.sql/Compose/context cookie 설정은 byte 기준 변경하지 않았다. 새 유료 자원/DB migration/계정 변경·운영 반영 없음. 보호 POM/Docker 변경이므로 부모의 exact SHA 검토와 기존 배포 guard를 거친다. 승인 후 앱만 교체하고 이전 검토 이미지/env/Compose를 보존해 실패시 앱 이미지만 되돌린다. DB 복원은 필요 없으며 앱 세션·미사용 재설정 링크는 재시작으로 다시 시작해야 할 수 있다. 롤백은 기존 라이브러리 취약점도 복원하므로 임시 복구로만 취급한다.

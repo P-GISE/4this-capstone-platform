@@ -2,6 +2,7 @@ import json
 import os
 import secrets
 import subprocess
+import http.client
 from http.cookies import SimpleCookie
 import urllib.error
 import urllib.parse
@@ -101,8 +102,24 @@ headers = probe("/projects/1/reports/download/1", 200, authenticated=True)
 assert headers.get("X-Content-Type-Options") == "nosniff"
 assert headers.get("Content-Disposition", "").startswith("attachment;")
 probe("/uploads/reports/synthetic-missing.pdf", 404, authenticated=True)
-probe("/projects/1/reports/upload", 413, "POST", "http://localhost:3401",
-      multipart(b"%PDF-" + b"x" * (11 * 1024 * 1024)), True, "multipart/form-data; boundary="+boundary)
+# Use HTTP's admission handshake: Tomcat rejects the declared request before
+# consuming its body. Its bounded default swallow policy may close a client that
+# blindly streams megabytes after that rejection; do not weaken that policy.
+connection = http.client.HTTPConnection("127.0.0.1", 3401, timeout=15)
+try:
+    connection.putrequest("POST", "/projects/1/reports/upload")
+    for name, value in {"Origin":"http://localhost:3401", "Cookie":cookie,
+                        "Content-Type":"multipart/form-data; boundary="+boundary,
+                        "Content-Length":str(11 * 1024 * 1024), "Expect":"100-continue"}.items():
+        connection.putheader(name, value)
+    connection.endheaders()
+    rejected = connection.getresponse()
+    results.append({"path":"/projects/1/reports/upload", "method":"POST",
+                    "status":rejected.status,"expected":413,"expect_continue":True})
+    Path("runtime-smoke.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+    assert rejected.status == 413, "Oversized multipart must be rejected before accepting its body"
+finally:
+    connection.close()
 assert sql("SELECT COUNT(*) FROM project_reports") == "1", "Rejected report must not persist"
 for service in ("app", "db"):
     container = subprocess.check_output(["docker", "compose", "ps", "-q", service], text=True).strip()
