@@ -1,7 +1,7 @@
 package com.example.test.auth;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
@@ -212,7 +212,7 @@ public class AuthController {
     }
 
     @GetMapping("/reset-password")
-    public String resetPasswordForm(javax.servlet.http.HttpServletResponse response) {
+    public String resetPasswordForm(jakarta.servlet.http.HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Referrer-Policy", "no-referrer");
         return "auth/reset-password";
@@ -220,7 +220,7 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public String resetPasswordSubmit(@RequestParam String token, @RequestParam String password,
-            @RequestParam String passwordConfirm, Model model, javax.servlet.http.HttpServletResponse response) {
+            @RequestParam String passwordConfirm, Model model, jakarta.servlet.http.HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Referrer-Policy", "no-referrer");
         if (password.equals(passwordConfirm) && authService.resetPassword(token, password)) {

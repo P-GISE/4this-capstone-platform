@@ -40,7 +40,7 @@ public class SessionBoundaryTest {
     }
 
     @Test public void destructiveAccountActionHasNoGetMapping() throws Exception {
-        java.lang.reflect.Method delete = AdminController.class.getMethod("deleteUser", Long.class, javax.servlet.http.HttpSession.class);
+        java.lang.reflect.Method delete = AdminController.class.getMethod("deleteUser", Long.class, jakarta.servlet.http.HttpSession.class);
         assertNull(delete.getAnnotation(GetMapping.class));
         assertNotNull(delete.getAnnotation(PostMapping.class));
     }
