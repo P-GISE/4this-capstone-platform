@@ -209,7 +209,7 @@
     </dependency>
 
     <!-- Commons FileUpload -->
-    
+
 
     <!-- Jackson Core -->
     <dependency>
@@ -297,9 +297,9 @@
     </dependency>
 
     <!-- JPA -->
-    
-    
-    
+
+
+
 
     <!-- OkHttp for HTTP requests -->
     <dependency>
