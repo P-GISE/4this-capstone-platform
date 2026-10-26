@@ -42,4 +42,8 @@ public class ServletPlatformBoundaryTest {
         assertTrue(encoder.matches("synthetic-legacy-password",encoded));
         assertFalse(encoder.matches("synthetic-wrong-password",encoded));
     }
+    @Test public void jspTagRuntimeIncludesItsRequiredApi() throws Exception {
+        Class.forName("org.apache.taglibs.standard.tag.rt.core.OutTag").getDeclaredConstructor().newInstance();
+        Class.forName("jakarta.servlet.jsp.jstl.core.Config");
+    }
 }
