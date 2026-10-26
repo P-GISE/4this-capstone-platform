@@ -35,7 +35,7 @@
                         <span class="mypage-avatar-text">${fn:substring(profile.name, 0, 1)}</span>
                     </div>
                     <div class="mypage-profile-basic-info">
-                        <h3 class="mypage-profile-name">${profile.name}</h3>
+                        <h3 class="mypage-profile-name"><c:out value="${profile.name}" /></h3>
                         <p class="mypage-profile-department">
                             <c:choose>
                                 <c:when test="${profile.role == 'STUDENT'}">학과</c:when>
@@ -57,8 +57,8 @@
                                 <c:otherwise>사번: -</c:otherwise>
                             </c:choose>
                         </p>
-                        <p class="mypage-profile-email">이메일: ${profile.email}</p>
-                        <p class="mypage-profile-phone">연락처: ${profile.phone}</p>
+                        <p class="mypage-profile-email">이메일: <c:out value="${profile.email}" /></p>
+                        <p class="mypage-profile-phone">연락처: <c:out value="${profile.phone}" /></p>
                     </div>
                     <div class="mypage-profile-actions">
                         <a href="/mypage/update-mypage" class="mypage-profile-action-btn mypage-primary-btn">프로필 편집</a>

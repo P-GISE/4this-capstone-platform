@@ -188,14 +188,48 @@ public class AuthController {
     }
 
     @PostMapping("/find-password")
-    public String findPassword(@RequestParam String email, Model model) {
-        boolean sent = authService.sendTemporaryPassword(email);
-        if (sent) {
-            model.addAttribute("message", "임시 비밀번호를 이메일로 보냈습니다.");
-        } else {
-            model.addAttribute("error", "등록된 이메일이 아닙니다.");
+    public String findPassword(@RequestParam String email, Model model, HttpServletRequest request) {
+        try {
+            authService.requestPasswordReset(email, resetClientAddress(request));
+        } catch (com.example.test.config.ExternalServiceUnavailableException unavailable) {
+            org.slf4j.LoggerFactory.getLogger(AuthController.class).warn("password_reset_unavailable");
         }
+        model.addAttribute("message", "등록된 계정이면 비밀번호 재설정 안내가 발송됩니다. 이메일을 확인하거나 잠시 후 다시 요청해주세요.");
         return "auth/find-password";
+    }
+
+    static String resetClientAddress(HttpServletRequest request) {
+        String remote = request.getRemoteAddr();
+        String forwarded = request.getHeader("CF-Connecting-IP");
+        if (("127.0.0.1".equals(remote) || "::1".equals(remote) || "0:0:0:0:0:0:0:1".equals(remote))
+                && forwarded != null && forwarded.length() <= 45
+                && (forwarded.contains(":") || forwarded.matches("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+"))
+                && forwarded.matches("[0-9a-fA-F:.]+")) {
+            try { return java.net.InetAddress.getByName(forwarded).getHostAddress(); }
+            catch (java.net.UnknownHostException invalid) { return remote; }
+        }
+        return remote == null ? "unknown" : remote;
+    }
+
+    @GetMapping("/reset-password")
+    public String resetPasswordForm(javax.servlet.http.HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("Referrer-Policy", "no-referrer");
+        return "auth/reset-password";
+    }
+
+    @PostMapping("/reset-password")
+    public String resetPasswordSubmit(@RequestParam String token, @RequestParam String password,
+            @RequestParam String passwordConfirm, Model model, javax.servlet.http.HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("Referrer-Policy", "no-referrer");
+        if (password.equals(passwordConfirm) && authService.resetPassword(token, password)) {
+            model.addAttribute("successMessage", "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.");
+            return "auth/login";
+        }
+        if (token.matches("[A-Za-z0-9_-]{43}")) model.addAttribute("resetToken", token);
+        model.addAttribute("error", "재설정 링크가 유효하지 않거나 만료됐습니다. 비밀번호는 8자 이상, UTF-8 기준72바이트 이하여야 합니다.");
+        return "auth/reset-password";
     }
 
     @GetMapping("/terms")

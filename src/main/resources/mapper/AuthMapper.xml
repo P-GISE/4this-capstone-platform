@@ -293,6 +293,11 @@
         WHERE user_id = #{userId}
     </update>
 
+    <update id="updatePasswordForReset">
+        UPDATE users SET password = #{password}, updated_at = NOW()
+        WHERE id = #{userId} AND password = #{previousHash}
+    </update>
+
     <!-- 사용자 기본 정보 업데이트 -->
     <update id="updateUser" parameterType="com.example.test.auth.AuthDto">
         UPDATE users 

@@ -1,7 +1,5 @@
 package com.example.test.mypage;
 
-import java.util.Map;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
@@ -19,6 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.test.auth.AuthDto;
 import com.example.test.auth.AuthService;
+import com.example.test.auth.ProfileUpdateDto;
 
 /**
  * 사용자 프로필 관련 요청을 처리하는 컨트롤러
@@ -142,100 +141,34 @@ public class MypageController {
      * URL 경로를 /update-mypage로 수정
      */
     @PostMapping("/update-mypage")
-    public String updateProfilePost(@ModelAttribute("profile") AuthDto user, 
+    public String updateProfilePost(@ModelAttribute("profile") ProfileUpdateDto profile,
                                   BindingResult bindingResult,
                                   HttpServletRequest request, 
                                   RedirectAttributes redirectAttributes) {
         
-        logger.info("=== 프로필 수정 요청 시작 ===");
-        
-        // 요청 파라미터 로깅
-        if (logger.isDebugEnabled()) {
-            logger.debug("요청 파라미터:");
-            for (Map.Entry<String, String[]> entry : request.getParameterMap().entrySet()) {
-                String key = entry.getKey();
-                String[] values = entry.getValue();
-                logger.debug("  {} = {}", key, String.join(", ", values));
-            }
-        }
-        
-        // 받은 사용자 데이터 로깅 (민감한 정보 제외)
-        logger.info("받은 사용자 데이터: {}", user != null ? user.toSafeString() : "null");
-        
-        // 로그인된 사용자 ID 가져오기
-        String username = getLoggedInUsername(request);
-        logger.info("세션 username: {}", username);
-        
-        if (!checkLogin(username, redirectAttributes)) {
+        HttpSession session = request.getSession(false);
+        Object principal = session == null ? null : session.getAttribute("loginUser");
+        AuthDto actor = principal instanceof AuthDto ? (AuthDto) principal : null;
+        if (actor == null || actor.getId() == null) {
             return "redirect:/auth/login";
         }
-
-        // 입력 데이터 검증
-        if (user == null) {
-            logger.error("프로필 데이터가 null입니다.");
-            redirectAttributes.addFlashAttribute("errorMessage", "프로필 데이터가 올바르지 않습니다.");
-            return "redirect:/mypage/update-mypage";
-        }
-
-        // AuthDto에 세션 사용자 ID 설정 (보안상 중요)
-        user.setUsername(username);
-        logger.info("username 설정 후: {}", user.toSafeString());
-        logger.info("전송된 폼 데이터 - id: {}, name: {}, email: {}, phone: {}", 
-                   user.getId(), user.getName(), user.getEmail(), user.getPhone());
-        
-        // 기본 검증 수행
         if (bindingResult.hasErrors()) {
-            logger.warn("입력 데이터 검증 오류: {}", bindingResult.getAllErrors());
             redirectAttributes.addFlashAttribute("errorMessage", "입력 데이터가 올바르지 않습니다.");
             return "redirect:/mypage/update-mypage";
         }
-        
         try {
-            logger.info("authService.updateUser() 호출 시작...");
-            
-            // 사용자 정보 수정 처리
-            boolean result = authService.updateUser(user);
-            
-            logger.info("updateUser 결과: {}", result);
-            
-            if (result) {
-                logger.info("프로필 수정 성공! username: {}", username);
-                
-                // 세션의 사용자 정보도 업데이트
-                try {
-                    AuthDto updatedUser = authService.getUserInfo(user);
-                    if (updatedUser != null) {
-                        HttpSession session = request.getSession(false);
-                        if (session != null) {
-                            session.setAttribute("loginUser", updatedUser);
-                            logger.info("세션의 사용자 정보 업데이트 완료");
-                        }
-                    }
-                } catch (Exception e) {
-                    logger.warn("세션 업데이트 중 오류 발생 (무시됨): {}", e.getMessage());
-                }
-                
+            if (authService.updateOwnProfile(actor.getId(), profile)) {
+                AuthDto updatedUser = authService.findById(actor.getId());
+                if (updatedUser != null) session.setAttribute("loginUser", updatedUser);
+                logger.info("profile_update_completed actor_id={}", actor.getId());
                 redirectAttributes.addFlashAttribute("successMessage", "프로필이 성공적으로 수정되었습니다.");
                 return "redirect:/mypage";
-            } else {
-                logger.warn("updateUser가 false를 반환했습니다. 가능한 원인:");
-                logger.warn("  - 데이터베이스 업데이트 실패");
-                logger.warn("  - SQL 조건 불일치 (WHERE 절)");
-                logger.warn("  - 매퍼 메서드 문제");
-                logger.warn("  - 트랜잭션 롤백");
-                
-                redirectAttributes.addFlashAttribute("errorMessage", "프로필 수정에 실패했습니다. 다시 시도해주세요.");
-                return "redirect:/mypage/update-mypage";
             }
-            
         } catch (Exception e) {
-            logger.error("프로필 수정 중 예외 발생! username: {}", username, e);
-            redirectAttributes.addFlashAttribute("errorMessage", 
-                "프로필 수정 중 오류가 발생했습니다: " + e.getMessage());
-            return "redirect:/mypage/update-mypage";
-        } finally {
-            logger.info("=== 프로필 수정 요청 종료 ===");
+            logger.error("profile_update_failed");
         }
+        redirectAttributes.addFlashAttribute("errorMessage", "프로필 수정에 실패했습니다. 다시 시도해주세요.");
+        return "redirect:/mypage/update-mypage";
     }
 
     /**

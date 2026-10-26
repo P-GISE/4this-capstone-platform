@@ -28,11 +28,11 @@ public interface AuthService {
 
     boolean isEmailAvailable(String email);
 
-    boolean sendTemporaryPassword(String email);
+    boolean requestPasswordReset(String email, String clientAddress);
 
     boolean verifyEmail(String username);
 
-    boolean resetPassword(String username, String newPassword);
+    boolean resetPassword(String token, String newPassword);
 
     String encodePassword(String password);
 
@@ -49,6 +49,8 @@ public interface AuthService {
      * 사용자 정보 업데이트
      */
     boolean updateUser(AuthDto authDto);
+
+    boolean updateOwnProfile(Long actorId, ProfileUpdateDto profile);
 
     /**
      * 비밀번호 업데이트

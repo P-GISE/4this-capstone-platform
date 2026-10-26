@@ -335,7 +335,7 @@
                                     <i class="fas fa-file-alt"></i>
                                 </div>
                                         <div>
-                                            <h6 class="mb-1">${report.fileName}</h6>
+                                            <h6 class="mb-1"><c:out value="${report.fileName}" /></h6>
                                             <small class="text-muted">
                                                 업로드: <fmt:formatDate value="${report.uploadedAt}" pattern="yyyy-MM-dd HH:mm" />
                                             </small>
@@ -450,5 +450,4 @@
         }
     </script>
 </body>
-</html> 
- 
+</html>

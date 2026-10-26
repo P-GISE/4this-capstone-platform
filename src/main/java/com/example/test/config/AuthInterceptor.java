@@ -34,6 +34,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (requestURI.equals("/auth/login") ||
             requestURI.equals("/auth/register") ||
             requestURI.equals("/auth/find-password") ||
+            requestURI.equals("/auth/reset-password") ||
             requestURI.equals("/auth/terms") ||
             requestURI.equals("/auth/privacy") ||
             requestURI.equals("/auth/verify-email") ||

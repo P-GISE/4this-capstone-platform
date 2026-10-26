@@ -117,22 +117,79 @@ public class MailFailureTest {
     @Test public void smtpFailureRollsBackExistingPassword() {
         String before = encoder.encode("existing-synthetic-password");
         jdbc.update("INSERT INTO users(username,password,email) VALUES(?,?,?)", "synthetic", before, "synthetic@example.invalid");
-        try { service.sendTemporaryPassword("synthetic@example.invalid"); fail("SMTP failure must escape transaction"); }
+        try { service.requestPasswordReset("synthetic@example.invalid", "synthetic-ip"); fail("SMTP failure must not claim delivery"); }
         catch (ExternalServiceUnavailableException expected) { }
         assertEquals(before, jdbc.queryForObject("SELECT password FROM users", String.class));
     }
 
-    @Test public void acceptedMailCommitsOnlyPasswordMatchingSyntheticMessage() {
+    @Test public void resetRequestPreservesPasswordUntilSingleUseTokenIsConfirmed() {
         jdbc.update("INSERT INTO users(username,password,email) VALUES(?,?,?)", "synthetic", encoder.encode("before"), "synthetic@example.invalid");
         mail.fail = false;
-        assertTrue(service.sendTemporaryPassword("synthetic@example.invalid"));
-        String sent = mail.body.substring(mail.body.indexOf("<strong>") + 8, mail.body.indexOf("</strong>"));
-        assertTrue(encoder.matches(sent, jdbc.queryForObject("SELECT password FROM users", String.class)));
+        assertTrue(service.requestPasswordReset("synthetic@example.invalid", "synthetic-ip"));
+        assertTrue(encoder.matches("before", jdbc.queryForObject("SELECT password FROM users", String.class)));
+        java.util.regex.Matcher link = java.util.regex.Pattern.compile("#token=([A-Za-z0-9_-]{43})").matcher(mail.body);
+        assertTrue(link.find());
+        assertTrue(service.resetPassword(link.group(1), "synthetic-new-password"));
+        assertTrue(encoder.matches("synthetic-new-password", jdbc.queryForObject("SELECT password FROM users", String.class)));
+        assertFalse(service.resetPassword(link.group(1), "synthetic-replay-password"));
+    }
+
+    @Test public void usernameCannotBeUsedInsteadOfAResetToken() {
+        String before = encoder.encode("unchanged-password");
+        jdbc.update("INSERT INTO users(username,password,email) VALUES(?,?,?)", "synthetic", before, "synthetic@example.invalid");
+        assertFalse(service.resetPassword("synthetic", "unconfirmed-password"));
+        assertEquals(before, jdbc.queryForObject("SELECT password FROM users", String.class));
     }
 
     @Test public void unknownAddressDoesNotGenerateMailOrChangePassword() {
-        assertFalse(service.sendTemporaryPassword("missing@example.invalid"));
+        assertFalse(service.requestPasswordReset("missing@example.invalid", "synthetic-ip"));
         assertNull(mail.body);
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM users", Integer.class).intValue());
+    }
+
+    @Test public void failedResetDeliveryRevokesTheIssuedToken() {
+        String before = encoder.encode("existing-password");
+        jdbc.update("INSERT INTO users(username,password,email) VALUES(?,?,?)", "synthetic", before, "synthetic@example.invalid");
+        try { service.requestPasswordReset("synthetic@example.invalid", "synthetic-ip"); fail("delivery must fail"); }
+        catch (ExternalServiceUnavailableException expected) { }
+        java.util.regex.Matcher link = java.util.regex.Pattern.compile("#token=([A-Za-z0-9_-]{43})").matcher(mail.body);
+        assertTrue(link.find());
+        assertFalse(service.resetPassword(link.group(1), "unconfirmed-password"));
+        assertEquals(before, jdbc.queryForObject("SELECT password FROM users", String.class));
+    }
+
+    @Test public void tokenCannotOverwriteAPasswordChangedAfterItsIssue() {
+        jdbc.update("INSERT INTO users(username,password,email) VALUES(?,?,?)", "synthetic", encoder.encode("before"), "synthetic@example.invalid");
+        mail.fail = false;
+        assertTrue(service.requestPasswordReset("synthetic@example.invalid", "synthetic-ip"));
+        java.util.regex.Matcher link = java.util.regex.Pattern.compile("#token=([A-Za-z0-9_-]{43})").matcher(mail.body);
+        assertTrue(link.find());
+        String changed = encoder.encode("changed-after-issue");
+        jdbc.update("UPDATE users SET password=?", changed);
+        assertFalse(service.resetPassword(link.group(1), "must-not-overwrite"));
+        assertEquals(changed, jdbc.queryForObject("SELECT password FROM users", String.class));
+    }
+
+    @Test public void resetEndpointDoesNotRevealAccountExistenceOrDeliveryOutcome() throws Exception {
+        jdbc.update("INSERT INTO users(username,password,email) VALUES(?,?,?)", "synthetic", encoder.encode("before"), "synthetic@example.invalid");
+        AuthController controller = new AuthController();
+        Field field = AuthController.class.getDeclaredField("authService"); field.setAccessible(true); field.set(controller, service);
+        org.springframework.mock.web.MockHttpServletRequest request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setRemoteAddr("203.0.113.2");
+        ExtendedModelMap known = new ExtendedModelMap(), unknown = new ExtendedModelMap();
+        assertEquals(controller.findPassword("synthetic@example.invalid", known, request),
+                controller.findPassword("missing@example.invalid", unknown, request));
+        assertEquals(known.get("message"), unknown.get("message"));
+        assertNull(known.get("error"));
+        assertNull(unknown.get("error"));
+    }
+
+    @Test public void onlyLoopbackIngressCanSupplyCloudflareClientAddress() {
+        org.springframework.mock.web.MockHttpServletRequest request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setRemoteAddr("203.0.113.3");
+        request.addHeader("CF-Connecting-IP", "198.51.100.1");
+        assertEquals("203.0.113.3", AuthController.resetClientAddress(request));
+        request.setRemoteAddr("127.0.0.1");
+        assertEquals("198.51.100.1", AuthController.resetClientAddress(request));
     }
 }
