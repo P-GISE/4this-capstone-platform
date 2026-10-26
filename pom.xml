@@ -11,13 +11,13 @@
   <!-- 프로퍼티 설정 -->
   <properties>
     <spring.version>7.0.10</spring.version>
-    <spring.security.version>7.0.8</spring.security.version>
+    <spring.security.version>7.1.2</spring.security.version>
     <slf4j.version>1.7.36</slf4j.version>
-    <log4j.version>2.20.0</log4j.version>
+    <log4j.version>2.26.1</log4j.version>
     <kotlin.version>1.7.20</kotlin.version>
     <okhttp.version>4.10.0</okhttp.version>
     <retrofit.version>2.9.0</retrofit.version>
-    <kotlinx.serialization.version>1.4.1</kotlinx.serialization.version>
+    <kotlinx.serialization.version>1.12.0</kotlinx.serialization.version>
   </properties>
 
   <!-- 의존성 버전 관리 -->
@@ -169,7 +169,7 @@
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>2.3.232</version>
+      <version>2.5.252</version>
       <scope>test</scope>
     </dependency>
 
@@ -190,7 +190,7 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.38</version>
+      <version>1.18.48</version>
       <optional>true</optional>
     </dependency>
 
@@ -198,12 +198,12 @@
     <dependency>
       <groupId>org.mybatis</groupId>
       <artifactId>mybatis-spring</artifactId>
-      <version>4.0.0</version>
+      <version>4.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.mybatis</groupId>
       <artifactId>mybatis</artifactId>
-      <version>3.5.13</version>
+      <version>3.6.0</version>
     </dependency>
 
     <!-- Spring Security -->
@@ -218,30 +218,30 @@
     <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.18.11</version>
+        <version>2.22.4</version>
     </dependency>
     <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-core</artifactId>
-        <version>2.18.11</version>
+        <version>2.22.4</version>
     </dependency>
     <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
-        <version>2.18.11</version>
+        <version>2.22</version>
     </dependency>
     <!-- Jackson JSR310 모듈 (LocalDateTime 등 Java 8 시간 타입 지원) -->
     <dependency>
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
-        <version>2.18.11</version>
+        <version>2.22.4</version>
     </dependency>
 
     <!-- coolsms -->
     <dependency>
         <groupId>net.nurigo</groupId>
         <artifactId>sdk</artifactId>
-        <version>4.2.7</version>
+        <version>4.3.2</version>
         <exclusions>
           <exclusion>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -309,7 +309,7 @@
     <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.10.1</version>
+        <version>2.14.0</version>
     </dependency>
   </dependencies>
 
@@ -320,7 +320,7 @@
           <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-surefire-plugin</artifactId>
-              <version>3.6.0</version>
+              <version>3.6.1</version>
               <configuration>
                   <environmentVariables>
                       <UPLOAD_DIR>${project.build.directory}/test-uploads</UPLOAD_DIR>
@@ -331,7 +331,7 @@
           <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-compiler-plugin</artifactId>
-              <version>3.14.1</version>
+              <version>3.16.0</version>
               <configuration>
                   <release>17</release>
                   <parameters>true</parameters>
@@ -343,7 +343,7 @@
           <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-war-plugin</artifactId>
-              <version>3.2.3</version>
+              <version>3.5.1</version>
               <configuration>
                   <failOnMissingWebXml>false</failOnMissingWebXml>
               </configuration>
