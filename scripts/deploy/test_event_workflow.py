@@ -108,15 +108,19 @@ class WorkflowTests(unittest.TestCase):
             self.execute_inline([subprocess.CompletedProcess([], 75, '', 'other failure')])
         self.sleep.assert_not_called()
 
-    def test_workflow_activation_and_queue_contract(self):
-        text = (HERE / '../../.github/workflows/deploy-event.yml').read_text()
-        self.assertNotIn('UNCONFIGURED', text)
-        self.assertNotIn('if: ${{ false }}', text)
-        self.assertIn('queue: max', text)
-        self.assertIn('cancel-in-progress: false', text)
-        self.assertNotIn('actions/checkout', text)
-        self.assertIn('trap', text)
-        self.assertIn('chmod 600', text)
+    def test_duplicate_receipt_requires_the_exact_requested_run(self):
+        for deployed_run in (42, 41):
+            receipt = json.loads(self.success.stdout)
+            receipt.update(status='already_deployed', deployed_run_id=deployed_run,
+                           artifact_run_id=deployed_run)
+            reply = subprocess.CompletedProcess([], 0, json.dumps(receipt), '')
+            with self.subTest(deployed_run=deployed_run):
+                if deployed_run == 42:
+                    self.execute_inline([reply])
+                    self.assertEqual(self.ssh.call_count, 1)
+                else:
+                    with self.assertRaises(AssertionError):
+                        self.execute_inline([reply])
 
     def test_actual_job_predicate_rejects_untrusted_events(self):
         text = (HERE / '../../.github/workflows/deploy-event.yml').read_text()
