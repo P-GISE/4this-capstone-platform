@@ -47,6 +47,8 @@ jobs:
         run: mvn -B -ntp clean verify
       - name: Verify deployment selection and cancellation
         run: python3 -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Verify event deployment workflow contract
+        run: python3 -m unittest discover -s scripts/deploy -p 'test_event_workflow.py' -v
       - name: Build reviewed source image
         run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -t fourthis:${{ github.sha }} .
       - name: Start isolated runtime and verify HTTP boundaries
