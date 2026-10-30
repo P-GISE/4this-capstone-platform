@@ -38,3 +38,7 @@
 `python3 -m unittest discover -s scripts/deploy -p 'test_event_workflow.py' -v`
 
 12개 테스트는 실제 YAML 안의 inline Python과 job 조건식을 실행합니다. canonical API·SSH는 synthetic 응답으로 고정하므로 실제 GitHub 요청이나 서버 연결이 발생하지 않습니다. 정상 호출, PR/fork/다른 workflow 거부, 수동 복구, 잘못된 receipt, 잠금 재시도·예산 소진, 비잠금 오류를 검증합니다. 기존 CI에 위 명령 하나를 추가했으며 애플리케이션·DB·메일 로직은 변경하지 않았습니다.
+
+## 2026-10-30 활성화 검증
+
+최초 보호 소스 승격과 같은 SHA/run의 수동 이벤트 복구를 검증했다. 이 문서 갱신의 main CI가 성공하면 새 SHA의 이벤트 배포와 서버 영수증·이미지·DB 및 다른 서비스 보존을 대조한다. 신규 이벤트 검증 후 기존 타이머 전환을 마친다.
