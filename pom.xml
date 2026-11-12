@@ -14,7 +14,7 @@
     <spring.security.version>7.0.8</spring.security.version>
     <slf4j.version>1.7.36</slf4j.version>
     <log4j.version>2.25.5</log4j.version>
-    <kotlin.version>1.7.20</kotlin.version>
+    <kotlin.version>2.4.21</kotlin.version>
     <okhttp.version>4.10.0</okhttp.version>
     <retrofit.version>2.9.0</retrofit.version>
     <kotlinx.serialization.version>1.4.1</kotlinx.serialization.version>
