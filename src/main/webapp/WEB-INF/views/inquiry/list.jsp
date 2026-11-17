@@ -287,7 +287,7 @@
                 <!-- 검색 및 필터 영역 -->
                 <div class="search-section">
                     <form method="get" action="/inquiry/list" class="search-form">
-                        <input type="text" name="search" class="search-input" placeholder="문의사항 검색..." value="${param.search}">
+                        <input type="text" name="search" class="search-input" placeholder="문의사항 검색..." value="<c:out value='${param.search}' />">
                         <button class="btn btn-outline" type="submit">검색</button>
                         
                         <div class="filter-selects">
@@ -326,7 +326,7 @@
                                         </a>
                                     </div>
                                 </td>
-                                <td>${inq.writerName}</td>
+                                <td><c:out value='${inq.writerName}' /></td>
                                 <td><fmt:formatDate value="${inq.createdAt}" pattern="yyyy.MM.dd" /></td>
                                 <td>
                                     <c:choose>
@@ -355,8 +355,8 @@
                 <!-- 페이지네이션 -->
                 <div class="pagination">
                     <c:if test="${currentPage > 1}">
-                        <a href="?page=1&search=${param.search}&status=${param.status}&sort=${param.sort}" class="page-btn">«</a>
-                        <a href="?page=${currentPage - 1}&search=${param.search}&status=${param.status}&sort=${param.sort}" class="page-btn">‹</a>
+                        <a href="?page=1&search=<c:out value='${param.search}' />&status=<c:out value='${param.status}' />&sort=<c:out value='${param.sort}' />" class="page-btn">«</a>
+                        <a href="?page=${currentPage - 1}&search=<c:out value='${param.search}' />&status=<c:out value='${param.status}' />&sort=<c:out value='${param.sort}' />" class="page-btn">‹</a>
                     </c:if>
                     
                     <c:forEach begin="1" end="${totalPages}" var="i">
@@ -365,14 +365,14 @@
                                 <span class="page-btn active">${i}</span>
                             </c:when>
                             <c:otherwise>
-                                <a href="?page=${i}&search=${param.search}&status=${param.status}&sort=${param.sort}" class="page-btn">${i}</a>
+                                <a href="?page=${i}&search=<c:out value='${param.search}' />&status=<c:out value='${param.status}' />&sort=<c:out value='${param.sort}' />" class="page-btn">${i}</a>
                             </c:otherwise>
                         </c:choose>
                     </c:forEach>
                     
                     <c:if test="${currentPage < totalPages}">
-                        <a href="?page=${currentPage + 1}&search=${param.search}&status=${param.status}&sort=${param.sort}" class="page-btn">›</a>
-                        <a href="?page=${totalPages}&search=${param.search}&status=${param.status}&sort=${param.sort}" class="page-btn">»</a>
+                        <a href="?page=${currentPage + 1}&search=<c:out value='${param.search}' />&status=<c:out value='${param.status}' />&sort=<c:out value='${param.sort}' />" class="page-btn">›</a>
+                        <a href="?page=${totalPages}&search=<c:out value='${param.search}' />&status=<c:out value='${param.status}' />&sort=<c:out value='${param.sort}' />" class="page-btn">»</a>
                     </c:if>
                 </div>
             </div>

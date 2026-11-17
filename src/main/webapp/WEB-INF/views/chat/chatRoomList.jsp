@@ -484,16 +484,16 @@
                                 </c:if>
                                 
                                 <c:forEach items="${rooms}" var="room">
-                                    <div class="room-item" onclick="selectChatRoom('${room.roomId}', '${room.name}', this)" data-room-id="${room.roomId}">
+                                    <div class="room-item" onclick="selectChatRoom(this.dataset.roomId, this.dataset.roomName, this)" data-room-id="<c:out value='${room.roomId}' />" data-room-name="<c:out value='${room.name}' />">
                                         <div class="room-item-content">
                                             <div class="room-avatar">
-                                                ${room.name.substring(0,1)}
+                                                <c:out value='${room.name.substring(0,1)}' />
                                             </div>
                                             <div class="room-details">
                                                 <div class="room-name">
-                                                    ${room.name}
+                                                    <c:out value='${room.name}' />
                                                 </div>
-                                                <div class="room-description">${room.description}</div>
+                                                <div class="room-description"><c:out value='${room.description}' /></div>
                                                 <div class="room-info">
                                                     <span>
                                                         <c:if test="${room.isPrivate}">

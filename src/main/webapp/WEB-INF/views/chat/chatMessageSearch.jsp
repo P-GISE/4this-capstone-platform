@@ -5,7 +5,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>메시지 검색 - ${not empty chatRoom ? chatRoom.name : '채팅방'}</title>
+    <title>메시지 검색 - <c:out value="${not empty chatRoom ? chatRoom.name : '채팅방'}" /></title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         .message-item {
@@ -74,7 +74,7 @@
                                         <label for="searchKeyword">검색어</label>
                                         <div class="input-group">
                                             <input type="text" class="form-control" id="searchKeyword" 
-                                                   name="keyword" value="${param.keyword}" 
+                                                   name="keyword" value="<c:out value='${param.keyword}' />"
                                                    placeholder="검색어를 입력하고 엔터를 누르세요">
                                             <div class="input-group-append">
                                                 <button type="submit" class="btn btn-primary">검색</button>
@@ -89,14 +89,14 @@
                                     <div class="form-group">
                                         <label for="searchDate">날짜</label>
                                         <input type="date" class="form-control" id="searchDate" 
-                                               name="date" value="${param.date}">
+                                               name="date" value="<c:out value='${param.date}' />">
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="searchUser">작성자</label>
                                         <input type="text" class="form-control" id="searchUser" 
-                                               name="user" value="${param.user}">
+                                               name="user" value="<c:out value='${param.user}' />">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -122,7 +122,7 @@
                                     <c:forEach items="${messages}" var="message" varStatus="status">
                                         <div class="message-item" data-message-id="${message.id}" data-index="${status.index}">
                                             <div class="d-flex justify-content-between">
-                                                <strong>${message.senderName}</strong>
+                                                <strong><c:out value='${message.senderName}' /></strong>
                                                 <span class="message-time">
                                                     <c:choose>
                                                         <c:when test="${not empty message.sendTime}">
@@ -160,19 +160,19 @@
                                 <ul class="pagination justify-content-center">
                                     <c:if test="${currentPage > 1}">
                                         <li class="page-item">
-                                            <a class="page-link" href="?page=${currentPage-1}&keyword=${param.keyword}&date=${param.date}&user=${param.user}">이전</a>
+                                            <a class="page-link" href="?page=${currentPage-1}&keyword=<c:out value='${param.keyword}' />&date=<c:out value='${param.date}' />&user=<c:out value='${param.user}' />">이전</a>
                                         </li>
                                     </c:if>
                                     
                                     <c:forEach begin="1" end="${totalPages}" var="i">
                                         <li class="page-item ${currentPage == i ? 'active' : ''}">
-                                            <a class="page-link" href="?page=${i}&keyword=${param.keyword}&date=${param.date}&user=${param.user}">${i}</a>
+                                            <a class="page-link" href="?page=${i}&keyword=<c:out value='${param.keyword}' />&date=<c:out value='${param.date}' />&user=<c:out value='${param.user}' />">${i}</a>
                                         </li>
                                     </c:forEach>
                                     
                                     <c:if test="${currentPage < totalPages}">
                                         <li class="page-item">
-                                            <a class="page-link" href="?page=${currentPage+1}&keyword=${param.keyword}&date=${param.date}&user=${param.user}">다음</a>
+                                            <a class="page-link" href="?page=${currentPage+1}&keyword=<c:out value='${param.keyword}' />&date=<c:out value='${param.date}' />&user=<c:out value='${param.user}' />">다음</a>
                                         </li>
                                     </c:if>
                                 </ul>
@@ -274,7 +274,7 @@
 
         // 검색어 하이라이트 처리
         function highlightSearchTerms() {
-            const keyword = '${param.keyword}';
+            const keyword = document.querySelector('input[name="keyword"]')?.value ?? '';
             if (keyword && keyword.trim() !== '') {
                 // 단순 문자열 치환으로 하이라이트 처리
                 document.querySelectorAll('.message-content').forEach(element => {
@@ -282,20 +282,21 @@
                     if (text && text.trim() !== '') {
                         const lowerText = text.toLowerCase();
                         const lowerKeyword = keyword.toLowerCase();
-                        let highlightedText = '';
+                        const highlightedText = document.createDocumentFragment();
                         let startIndex = 0;
                         let foundIndex = lowerText.indexOf(lowerKeyword);
                         
                         while (foundIndex !== -1) {
-                            highlightedText += text.substring(startIndex, foundIndex);
-                            highlightedText += '<span class="search-highlight">' + 
-                                             text.substring(foundIndex, foundIndex + keyword.length) + 
-                                             '</span>';
+                            highlightedText.append(text.substring(startIndex, foundIndex));
+                            const match = document.createElement('span');
+                            match.className = 'search-highlight';
+                            match.textContent = text.substring(foundIndex, foundIndex + keyword.length);
+                            highlightedText.append(match);
                             startIndex = foundIndex + keyword.length;
                             foundIndex = lowerText.indexOf(lowerKeyword, startIndex);
                         }
-                        highlightedText += text.substring(startIndex);
-                        element.innerHTML = highlightedText;
+                        highlightedText.append(text.substring(startIndex));
+                        element.replaceChildren(highlightedText);
                     }
                 });
             }

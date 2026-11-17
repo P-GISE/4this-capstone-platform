@@ -509,7 +509,7 @@
                             <div class="participant-avatar">
                                 <c:choose>
                                     <c:when test="${not empty participant.nickname}">
-                                        ${participant.nickname.substring(0,1)}
+                                        <c:out value='${participant.nickname.substring(0,1)}' />
                                     </c:when>
                                     <c:otherwise>
                                         U
@@ -520,7 +520,7 @@
                                 <p class="participant-name">
                                     <c:choose>
                                         <c:when test="${not empty participant.nickname}">
-                                            ${participant.nickname}
+                                            <c:out value='${participant.nickname}' />
                                         </c:when>
                                         <c:otherwise>
                                             사용자${participant.userId}
@@ -528,7 +528,7 @@
                                     </c:choose>
                                 </p>
                                 <p class="participant-id">
-                                    ID: ${participant.userId}<c:if test="${not empty participant.studentId}"> (${participant.studentId})</c:if>
+                                    ID: ${participant.userId}<c:if test="${not empty participant.studentId}"> (<c:out value='${participant.studentId}' />)</c:if>
                                 </p>
                             </div>
                             <c:if test="${participant.isAdmin}">

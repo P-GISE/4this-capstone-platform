@@ -4,7 +4,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>채팅방 설정 - ${chatRoom.name}</title>
+    <title>채팅방 설정 - <c:out value='${chatRoom.name}' /></title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
@@ -25,13 +25,13 @@
                             <div class="form-group">
                                 <label for="name">채팅방 이름</label>
                                 <input type="text" class="form-control" id="name" name="name" 
-                                       value="${chatRoom.name}" required>
+                                       value="<c:out value='${chatRoom.name}' />" required>
                             </div>
                             
                             <div class="form-group">
                                 <label for="description">설명</label>
                                 <textarea class="form-control" id="description" name="description" 
-                                          rows="3">${chatRoom.description}</textarea>
+                                          rows="3"><c:out value='${chatRoom.description}' /></textarea>
                             </div>
                             
                             <div class="form-group">

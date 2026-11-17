@@ -5,7 +5,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>채팅방 통계 - ${chatRoom.name}</title>
+    <title>채팅방 통계 - <c:out value='${chatRoom.name}' /></title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -112,10 +112,10 @@
                                                                     <img src="${activity.userProfileImage}" 
                                                                          alt="프로필" class="rounded-circle mr-2" 
                                                                          width="30" height="30">
-                                                                    ${activity.userName}
+                                                                    <c:out value='${activity.userName}' />
                                                                 </div>
                                                             </td>
-                                                            <td>${activity.lastMessage}</td>
+                                                            <td><c:out value='${activity.lastMessage}' /></td>
                                                             <td>
                                                                 <fmt:formatDate value="${activity.lastMessageTime}" 
                                                                               pattern="yyyy-MM-dd HH:mm"/>

@@ -419,11 +419,11 @@
         <div class="main-body">
             <!-- 문의사항 내용 -->
             <div class="view-container">
-                <div class="view-title">${inquiry.title}</div>
+                <div class="view-title"><c:out value='${inquiry.title}' /></div>
                 <div class="view-meta">
-                    <strong>작성자:</strong> ${inquiry.writerName} |
+                    <strong>작성자:</strong> <c:out value='${inquiry.writerName}' /> |
                     <strong>작성일:</strong> <fmt:formatDate value="${inquiry.createdAt}" pattern="yyyy-MM-dd HH:mm" /> |
-                    <strong>카테고리:</strong> ${inquiry.category} |
+                    <strong>카테고리:</strong> <c:out value='${inquiry.category}' /> |
                     <strong>상태:</strong>
                     <c:choose>
                         <c:when test="${inquiry.status == 'ANSWERED'}">
@@ -439,7 +439,7 @@
                 </div>
 
                 <div class="view-content">
-                    ${inquiry.content}
+                    <c:out value='${inquiry.content}' />
                 </div>
 
                 <!-- 문의사항 첨부파일 -->
@@ -453,8 +453,8 @@
                                     <div class="attachment-info">
                                         <a href="/inquiry/download?attachmentId=${file.id}" 
                                            class="attachment-name"
-                                           title="${file.originalFileName}">
-                                            ${file.originalFileName}
+                                           title="<c:out value='${file.originalFileName}' />">
+                                            <c:out value='${file.originalFileName}' />
                                         </a>
                                         <div class="attachment-meta">
                                             크기: <fmt:formatNumber value="${file.fileSize / 1024}" pattern="#,##0.0"/>KB | 
@@ -480,18 +480,18 @@
                                 <div class="answer-header">
                                     <div class="answer-author">
                                         <div class="author-avatar">
-                                            ${answer.adminName.substring(0,1)}
+                                            <c:out value='${answer.adminName.substring(0,1)}' />
                                         </div>
                                         <div class="author-info">
-                                            <div class="author-name">${answer.adminName}</div>
-                                            <div class="author-role">${answer.adminRole}</div>
+                                            <div class="author-name"><c:out value='${answer.adminName}' /></div>
+                                            <div class="author-role"><c:out value='${answer.adminRole}' /></div>
                                         </div>
                                     </div>
                                     <div class="answer-meta">
                                         <fmt:formatDate value="${answer.createdAt}" pattern="yyyy-MM-dd HH:mm" />
                                         <c:if test="${answer.edited}">
                                             <span class="badge badge-edited">수정됨</span>
-                                            <br><small>수정자: ${answer.updatedByName}</small>
+                                            <br><small>수정자: <c:out value='${answer.updatedByName}' /></small>
                                         </c:if>
                                         <c:if test="${isAdmin}">
                                             <br>
@@ -508,7 +508,7 @@
                                 </div>
                                 
                                 <div class="answer-content">
-                                    ${answer.answer}
+                                    <c:out value='${answer.answer}' />
                                 </div>
                                 
                                 <!-- 답변 첨부파일 표시 -->
@@ -524,8 +524,8 @@
                                                     <div class="answer-attachment-info">
                                                         <a href="/inquiry/answer/download?attachmentId=${file.id}" 
                                                            class="answer-attachment-name"
-                                                           title="${file.originalFileName}">
-                                                            ${file.originalFileName}
+                                                           title="<c:out value='${file.originalFileName}' />">
+                                                            <c:out value='${file.originalFileName}' />
                                                         </a>
                                                         <div class="answer-attachment-meta">
                                                             <fmt:formatNumber value="${file.fileSize / 1024}" pattern="#,##0.0"/>KB | 
