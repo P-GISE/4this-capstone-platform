@@ -15,7 +15,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>${chatRoom.name} - 채팅방</title>
+    <title><c:out value='${chatRoom.name}' /> - 채팅방</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.0.7/css/boxicons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1322,10 +1322,10 @@
                         <div class="col-8">
                             <div class="user-profile">
                                 <div class="user-avatar">
-                                    ${chatRoom.name.substring(0,1)}
+                                    <c:out value='${chatRoom.name.substring(0,1)}' />
                                 </div>
                                 <div class="user-info">
-                                    <h5>${chatRoom.name}</h5>
+                                    <h5><c:out value='${chatRoom.name}' /></h5>
                                     <p class="user-status">온라인</p>
                                 </div>
                             </div>
@@ -1378,7 +1378,9 @@
                 </div>
                 
                 <!-- 채팅 메시지 영역 -->
-                <div class="chat-messages" id="chatMessages">
+                <div class="chat-messages" id="chatMessages"
+                     data-room-id="<c:out value='${chatRoom.roomId}' />"
+                     data-current-user-id="<c:out value='${user.id}' />">
                     <div class="chat-day-title">
                         <span class="title">오늘</span>
                     </div>
@@ -1394,7 +1396,7 @@
                                                 <a href="javascript:void(0)" class="user-name">
                                                     <c:choose>
                                                         <c:when test="${not empty message.senderName}">
-                                                            ${message.senderName}
+                                                            <c:out value='${message.senderName}' />
                                                         </c:when>
                                                         <c:otherwise>
                                                             사용자${message.userId}
@@ -1412,7 +1414,7 @@
                                             </h5>
                                         </c:if>
                                         
-                                        <p class="message-content">${message.content}</p>
+                                        <p class="message-content"><c:out value='${message.content}' /></p>
                                         
                                         <!-- 파일 첨부가 있는 경우 표시 -->
                                         <c:if test="${not empty message.files}">
@@ -1420,7 +1422,7 @@
                                                 <c:forEach items="${message.files}" var="file" varStatus="fileStatus">
                                                     <div class="file-attachment">
                                                         <i class="fas fa-file"></i>
-                                                        <span>${file.originalFileName}</span>
+                                                        <span><c:out value='${file.originalFileName}' /></span>
                                                         <small class="file-size" data-size="${file.fileSize}">
                                                             (<c:choose>
                                                                 <c:when test="${file.fileSize > 1024*1024}">
@@ -1439,7 +1441,7 @@
                                                             <c:when test="${not empty file.id and file.id > 0}">
                                                                 <a href="/chat/download/${file.id}" 
                                                                    class="download-btn"
-                                                                   download="${file.originalFileName}">
+                                                                   download="<c:out value='${file.originalFileName}' />">
                                                                     📥 다운로드
                                                                 </a>
                                                             </c:when>
@@ -1576,19 +1578,20 @@
     <script>
         let stompClient = null;
         let isFileUploading = false;
-        const roomId = "${chatRoom.roomId}";
-        const userId = "${user.id}";
-        const userName = "${user.name}";
-        const userStudentId = "${user.studentProfile != null ? user.studentProfile.studentId : user.username}";
+        const { roomId, currentUserId: userId } = document.getElementById("chatMessages").dataset;
         const senderId = userId;
         const pageLoadTime = new Date().getTime();
 
         console.log('채팅방 정보:', {
             roomId: roomId,
             userId: userId,
-            userName: userName,
-            roomName: "${chatRoom.name}"
+            senderId: senderId
         });
+
+        function escapeChatHtml(value) {
+            const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return String(value).replace(/[&<>"']/g, character => entities[character]);
+        }
 
         function connect() {
             const socket = new SockJS('/ws');
@@ -1678,7 +1681,7 @@
             
             let safeSenderName;
             if (message.senderId == senderId) {
-                safeSenderName = userName + '/' + userStudentId;
+                safeSenderName = '나';
             } else {
                 safeSenderName = (message.senderName && String(message.senderName).trim() !== '' && String(message.senderName) !== 'null' && String(message.senderName) !== 'undefined') 
                     ? String(message.senderName) : ('사용자' + message.senderId);
@@ -1691,14 +1694,14 @@
                 message.files.forEach((file, index) => {
                     const displayFileName = file.originalFileName || file.fileName || 'unknown_file';
                     const formattedSize = formatFileSize(file.fileSize || 0);
-                    const safeDisplayFileName = (displayFileName || 'unknown_file').replace(/'/g, "\\'");
+                    const safeDisplayFileName = escapeChatHtml(displayFileName);
                     
                     fileHtml += 
                         '<div class="file-attachment">' +
                             '<i class="fas fa-file"></i>' +
                             '<span>' + safeDisplayFileName + '</span>' +
                             '<small class="file-size">(' + formattedSize + ')</small>' +
-                            '<a href="/chat/download/' + file.id + '" ' +
+                            '<a href="/chat/download/'  + escapeChatHtml(encodeURIComponent(file.id)) + '" ' +
                                'class="download-btn" ' +
                                'download="' + safeDisplayFileName + '">' +
                                 '📥 다운로드' +
@@ -1719,8 +1722,8 @@
             
             if (message.senderId != senderId) {
                 messageHtml += '<div class="conversation-name">';
-                messageHtml += '<a href="javascript:void(0)" class="user-name">' + safeSenderName + '</a>';
-                messageHtml += '<span class="time">' + (message.createdAt || currentTime) + '</span>';
+                messageHtml += '<a href="javascript:void(0)" class="user-name">' + escapeChatHtml(safeSenderName) + '</a>';
+                messageHtml += '<span class="time">' + escapeChatHtml(message.createdAt || currentTime) + '</span>';
                 messageHtml += '</div>';
             } else {
                 messageHtml += '<div class="conversation-name">';
@@ -1732,18 +1735,20 @@
             messageHtml += 
                 '<div class="ctext-wrap">' +
                     '<div class="ctext-wrap-content">' +
-                        '<p class="message-content">' + safeContent + '</p>' +
+                        '<p class="message-content"></p>' +
                         fileHtml +
                     '</div>';
             
             if (message.senderId == senderId) {
-                messageHtml += '<div class="read-status" id="read-status-' + (message.id || 'temp-' + Date.now()) + '">전송됨</div>';
+                messageHtml += '<div class="read-status" id="read-status-' + escapeChatHtml(message.id || 'temp-' + Date.now()) + '">전송됨</div>';
             }
             
             messageHtml += '</div>';
             messageHtml += '</div>';
             
             messageDiv.innerHTML = messageHtml;
+            const messageText = messageDiv.querySelector(".message-content");
+            messageText.textContent = safeContent;
             messageDiv.setAttribute('data-message-id', message.id || 'temp-' + Date.now());
             
             chatMessages.appendChild(messageDiv);
@@ -1807,11 +1812,11 @@
                 const participantHtml = 
                     '<div class="participant-item">' +
                         '<div class="participant-avatar">' +
-                            firstChar +
+                            escapeChatHtml(firstChar) +
                         '</div>' +
                         '<div class="participant-info flex-grow-1">' +
                             '<div class="participant-name">' +
-                                participant.nickname +
+                                escapeChatHtml(participant.nickname) +
                             '</div>' +
                             '<small class="text-muted">' +
                                 (isAdmin ? 
@@ -1867,7 +1872,7 @@
                 fileDiv.innerHTML = 
                     '<div>' +
                         '<i class="fas fa-file"></i>' +
-                        '<span class="ml-2">' + file.name + '</span>' +
+                        '<span class="ml-2">' + escapeChatHtml(file.name) + '</span>' +
                         '<small class="text-muted ml-2">(' + formatFileSize(file.size) + ')</small>' +
                     '</div>' +
                     '<button class="btn btn-sm btn-outline-danger" onclick="removeFile(' + index + ')">' +
@@ -1992,11 +1997,11 @@
                 const participantHtml = 
                     '<div class="participant-item">' +
                         '<div class="participant-avatar">' +
-                            firstChar +
+                            escapeChatHtml(firstChar) +
                         '</div>' +
                         '<div class="participant-info flex-grow-1">' +
                             '<div class="participant-name">' +
-                                nickname +
+                                escapeChatHtml(nickname) +
                             '</div>' +
                             '<small class="text-muted">' +
                                 (isAdmin ? 
@@ -2218,7 +2223,7 @@
                     '<small class="' + statusClass + ' online-status">' +
                         '<i class="' + statusIcon + '" style="font-size: 8px;"></i> ' + statusText +
                     '</small>' +
-                    (statusMessage ? '<div style="font-size: 11px; color: #666; font-style: italic; margin-left: 55px;">' + statusMessage + '</div>' : '');
+                    (statusMessage ? '<div style="font-size: 11px; color: #666; font-style: italic; margin-left: 55px;">' + escapeChatHtml(statusMessage) + '</div>' : '');
                 
                 currentUserElement.innerHTML = statusHtml;
                 console.log('✅ 현재 사용자 상태 즉시 반영 완료:', statusText);
@@ -2540,14 +2545,14 @@
             let foundIndex = lowerText.indexOf(lowerQuery);
             
             while (foundIndex !== -1) {
-                highlightedText += originalText.substring(startIndex, foundIndex);
+                highlightedText += escapeChatHtml(originalText.substring(startIndex, foundIndex));
                 highlightedText += '<span class="search-highlight">' + 
-                                 originalText.substring(foundIndex, foundIndex + query.length) + 
+                                 escapeChatHtml(originalText.substring(foundIndex, foundIndex + query.length)) +
                                  '</span>';
                 startIndex = foundIndex + query.length;
                 foundIndex = lowerText.indexOf(lowerQuery, startIndex);
             }
-            highlightedText += originalText.substring(startIndex);
+            highlightedText += escapeChatHtml(originalText.substring(startIndex));
             element.innerHTML = highlightedText;
         }
 

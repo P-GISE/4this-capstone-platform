@@ -331,7 +331,7 @@
                     <div class="form-group">
                         <label for="title" class="form-label required">제목</label>
                         <input type="text" name="title" id="title" class="form-input" 
-                               value="${inquiry.title}" placeholder="문의 제목을 입력해주세요" required />
+                               value="<c:out value='${inquiry.title}' />" placeholder="문의 제목을 입력해주세요" required />
                         <div class="error-message" id="titleError">제목을 입력해주세요.</div>
                     </div>
 
@@ -367,7 +367,7 @@
                     <div class="form-group">
                         <label for="content" class="form-label required">문의 내용</label>
                         <textarea name="content" id="content" class="form-textarea" 
-                                  placeholder="문의 내용을 자세히 입력해주세요" required>${inquiry.content}</textarea>
+                                  placeholder="문의 내용을 자세히 입력해주세요" required><c:out value='${inquiry.content}' /></textarea>
                         <div style="font-size: 0.9rem; color: #666; margin-top: 8px;">최소 10자 이상 입력해주세요.</div>
                         <div class="error-message" id="contentError">문의 내용을 10자 이상 입력해주세요.</div>
                     </div>
@@ -385,7 +385,7 @@
                                 <c:forEach var="file" items="${attachments}">
                                     <div class="file-item" id="file-${file.id}">
                                         <div class="file-info">
-                                            <span class="file-name">${file.originalFileName}</span>
+                                            <span class="file-name"><c:out value='${file.originalFileName}' /></span>
                                             <span class="file-size">(<fmt:formatNumber value="${file.fileSize / 1024}" pattern="#,##0.0"/>KB)</span>
                                         </div>
                                         <button type="button" class="remove-file" data-file-id="${file.id}" onclick="deleteExistingFile($file.id)">×</button>

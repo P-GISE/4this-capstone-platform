@@ -307,7 +307,7 @@
                                 <div class="room-notification-setting">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6>${roomSetting.name}</h6>
+                                            <h6><c:out value='${roomSetting.name}' /></h6>
                                             <small class="text-muted">${roomSetting.participantCount}명 참여 중</small>
                                         </div>
                                         <div class="custom-control custom-switch">
