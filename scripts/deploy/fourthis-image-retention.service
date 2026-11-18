@@ -1,0 +1,19 @@
+[Unit]
+Description=Bounded Fourthis unused image retention
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 -I -B /usr/local/libexec/fourthis_image_retention.py --apply
+TimeoutStartSec=5min
+Nice=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/fourthis/deploy.lock /var/lib/fourthis-deploy/install.lock
+ProtectHome=yes
+PrivateTmp=yes
+StandardOutput=journal
+StandardError=journal
